@@ -139,8 +139,20 @@
                 radial-gradient(ellipse at 70% 60%, rgba(107, 88, 64, 0.2) 0%, transparent 40%),
                 url('zen-background.png') center center / cover no-repeat,
                 linear-gradient(180deg, var(--warm-white) 0%, var(--sand-light) 100%);
+            opacity: 0.5;
             position: relative;
             overflow: hidden;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 300px;
+            background: linear-gradient(to bottom, var(--sand-light) 0%, transparent 100%);
+            z-index: 0;
         }
 
         .hero::before {
