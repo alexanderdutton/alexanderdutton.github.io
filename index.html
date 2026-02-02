@@ -592,6 +592,26 @@
             background: rgba(201, 150, 120, 0.2);
         }
 
+        /* Scroll Fade-In Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered delays for service cards */
+        .service-card:nth-child(1).fade-in { transition-delay: 0.1s; }
+        .service-card:nth-child(2).fade-in { transition-delay: 0.2s; }
+        .service-card:nth-child(3).fade-in { transition-delay: 0.3s; }
+        .service-card:nth-child(4).fade-in { transition-delay: 0.4s; }
+        .service-card:nth-child(5).fade-in { transition-delay: 0.5s; }
+        .service-card:nth-child(6).fade-in { transition-delay: 0.6s; }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .hero h1 {
@@ -664,48 +684,48 @@
 
     <section class="services" id="services">
         <div class="container">
-            <div class="section-header">
+            <div class="section-header fade-in">
                 <h2>What I Do</h2>
                 <p>I drop into your codebase, figure out what's broken, and fix it. Fast.</p>
             </div>
 
             <div class="services-grid">
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <span class="badge urgent">Available Immediately</span>
                     <div class="service-icon">🚨</div>
                     <h3>Emergency Bug Fixes</h3>
                     <p>Production site down? Login glitch driving users away? I access your codebase, run through the workflow, isolate the issue, and deploy a hotfix within hours.</p>
                 </div>
 
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <span class="badge urgent">High Priority</span>
                     <div class="service-icon">🔧</div>
                     <h3>Production Troubleshooting</h3>
                     <p>Performance issues, intermittent bugs, production incidents? I analyze logs, trace the problem, and get your site back online.</p>
                 </div>
 
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <span class="badge standard">Standard Service</span>
                     <div class="service-icon">🧹</div>
                     <h3>Legacy Code Cleanup</h3>
                     <p>I've seen every anti-pattern—and perpetrated my fair share. That's real experience. I refactor spaghetti into maintainable code.</p>
                 </div>
 
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <span class="badge standard">Standard Service</span>
                     <div class="service-icon">🔌</div>
                     <h3>Plugin & Integration Conflicts</h3>
                     <p>Third-party plugins fighting each other? API integrations failing? I untangle the dependencies and create workarounds that work.</p>
                 </div>
 
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <span class="badge standard">Standard Service</span>
                     <div class="service-icon">⚡</div>
                     <h3>Performance Optimization</h3>
                     <p>Slow page loads? Database queries timing out? I identify bottlenecks, optimize queries, and implement caching strategies.</p>
                 </div>
 
-                <div class="service-card">
+                <div class="service-card fade-in">
                     <span class="badge urgent">Project Rescue</span>
                     <div class="service-icon">🚀</div>
                     <h3>Failed Project Rescue</h3>
@@ -717,12 +737,12 @@
 
     <section class="case-studies" id="case-studies">
         <div class="container">
-            <div class="section-header">
+            <div class="section-header fade-in">
                 <h2>Recent Work</h2>
                 <p>Real problems, real solutions.</p>
             </div>
 
-            <div class="case-study">
+            <div class="case-study fade-in">
                 <h3>🎯 Critical Login Bug - Resolved</h3>
                 <p><strong>Problem:</strong> Production site had a recurring login glitch that was annoying and difficult to reliably reproduce. Staff had been delayed from regular duties while trying to resolve it.</p>
                 <p><strong>Solution:</strong> I accessed the codebase myself, ran through the workflow, isolated the possibilities, and deployed a hotfix within hours.</p>
@@ -736,31 +756,31 @@
 
     <section class="strengths" id="strengths">
         <div class="container">
-            <div class="section-header">
+            <div class="section-header fade-in">
                 <h2>My Strengths</h2>
                 <p>What makes me different.</p>
             </div>
 
             <div class="strengths-grid">
-                <div class="strength-item">
+                <div class="strength-item fade-in">
                     <div class="emoji">🧩</div>
                     <h4>Adaptable Problem Solver</h4>
                     <p>I figure things out. New codebase, old codebase, weird stack—I adapt and deliver.</p>
                 </div>
 
-                <div class="strength-item">
+                <div class="strength-item fade-in">
                     <div class="emoji">⚡</div>
                     <h4>Quick Troubleshooter</h4>
                     <p>I don't guess. I trace, test, and verify. Fast iterations, rapid fixes.</p>
                 </div>
 
-                <div class="strength-item">
+                <div class="strength-item fade-in">
                     <div class="emoji">💬</div>
                     <h4>Good Communicator</h4>
                     <p>You'll always know what's happening, what I'm doing, and what to expect.</p>
                 </div>
 
-                <div class="strength-item">
+                <div class="strength-item fade-in">
                     <div class="emoji">📚</div>
                     <h4>Fast Learner</h4>
                     <p>If I don't know it yet, I will. Quickly. Your tech stack becomes my tech stack.</p>
@@ -771,7 +791,7 @@
 
     <section class="contact" id="contact">
         <div class="container">
-            <div class="contact-container">
+            <div class="contact-container fade-in">
                 <h2>Get In Touch</h2>
                 <p class="subtitle">Ready to fix what's broken. Let's talk.</p>
 
@@ -815,7 +835,22 @@
 
     <script>
         // Formspree handles form submission automatically
-        // No JavaScript needed for form handling
+
+        // Scroll-triggered fade-in animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+
+            document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+        });
     </script>
 </body>
 </html>
