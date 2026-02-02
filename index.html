@@ -15,6 +15,7 @@
             --sand-dark: #b8a88c;
             --terracotta: #c99678;
             --terracotta-dark: #a87a60;
+            --bamboo: #9fbba7;
             --stone: #8b7355;
             --stone-dark: #6b5840;
             --text-dark: #4a3c2e;
@@ -100,12 +101,12 @@
             left: 0;
             width: 0;
             height: 1px;
-            background: var(--terracotta);
+            background: var(--bamboo);
             transition: width 0.3s;
         }
 
         .nav-links a:hover {
-            color: var(--text-dark);
+            color: var(--bamboo);
         }
 
         .nav-links a:hover::after {
@@ -128,7 +129,7 @@
         .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(201, 150, 120, 0.3);
-            border-color: var(--terracotta-dark);
+            border-color: var(--bamboo);
         }
 
         /* Hero Section */
@@ -256,6 +257,7 @@
             height: 300px;
             top: 10%;
             left: 5%;
+            border-color: rgba(159, 187, 167, 0.3);
         }
 
         .zen-circle-2 {
@@ -264,6 +266,7 @@
             bottom: 20%;
             right: 8%;
             opacity: 0.5;
+            border-color: rgba(159, 187, 167, 0.2);
         }
 
         /* Services Section */
@@ -315,7 +318,7 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--terracotta) 0%, var(--sand-dark) 100%);
+            background: linear-gradient(90deg, var(--bamboo) 0%, var(--terracotta) 50%, var(--sand-dark) 100%);
             opacity: 0;
             transition: opacity 0.4s;
         }
