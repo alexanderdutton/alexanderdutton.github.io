@@ -54,11 +54,13 @@
 
         /* Header */
         header {
-            background: linear-gradient(180deg, var(--warm-white) 0%, rgba(250, 246, 240, 0.95) 100%);
+            background: rgba(250, 246, 240, 0.85);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-bottom: 1px solid rgba(184, 168, 140, 0.2);
             position: sticky;
             top: 0;
             z-index: 100;
-            backdrop-filter: blur(10px);
         }
 
         nav {
@@ -127,12 +129,32 @@
             letter-spacing: 0.05em;
             transition: all 0.3s;
             border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
         }
 
         .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(201, 150, 120, 0.3);
             border-color: var(--bamboo);
+        }
+
+        .cta-button:hover::after {
+            width: 300px;
+            height: 300px;
         }
 
         /* Hero Section */
