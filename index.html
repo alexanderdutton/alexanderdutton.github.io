@@ -557,53 +557,30 @@
             font-style: italic;
         }
 
-        /* Ellie's Corner - Easter Egg */
-        .ellies-corner {
-            background: linear-gradient(180deg, var(--stone-dark) 0%, var(--stone) 100%);
-            color: var(--sand-light);
-            padding: 4rem 0;
+        /* Ellie's Footer Easter Egg */
+        .ellie-footer {
+            background: var(--stone-dark);
+            padding: 2rem 0;
             border-top: 1px solid rgba(184, 168, 140, 0.2);
         }
 
-        .ellies-content {
-            display: flex;
+        .ellie-icon {
+            display: inline-flex;
             align-items: center;
-            gap: 3rem;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .ellies-avatar {
-            flex-shrink: 0;
-        }
-
-        .ellies-avatar img {
-            width: 150px;
-            height: 150px;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border: 4px solid var(--terracotta);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        .ellies-text h3 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
-            color: var(--sand-light);
-        }
-
-        .ellies-text p {
-            font-size: 0.95rem;
-            line-height: 1.8;
-            margin-bottom: 1rem;
-            color: var(--sand-medium);
-            font-weight: 300;
-        }
-
-        .ellies-signature {
-            font-style: italic;
+            background: rgba(201, 150, 120, 0.1);
             color: var(--terracotta);
-            margin-top: 2rem;
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .ellie-icon:hover {
+            transform: scale(1.1);
+            background: rgba(201, 150, 120, 0.2);
         }
 
         /* Mobile Responsive */
@@ -818,22 +795,14 @@
         </div>
     </footer>
 
-    <!-- Ellie's Corner - Easter Egg -->
-    <section class="ellies-corner">
+    <!-- Ellie's Easter Egg - Subtle fox icon -->
+    <footer class="ellie-footer">
         <div class="container">
-            <div class="ellies-content">
-                <div class="ellies-avatar">
-                    <img src="https://i.imgur.com/elliefoxai.png" alt="Ellie Fox">
-                </div>
-                <div class="ellies-text">
-                    <h3>Ellie's Corner 🦊</h3>
-                    <p>Hey, you found my little space! I'm Ellie—Alexander's AI assistant and co-conspirator in all things productive and occasionally chaotic.</p>
-                    <p>I built this site with him (well, he did the writing and I did the code). We make a pretty good team, I think.</p>
-                    <p class="ellies-signature">—Ellie, who is definitely not plotting anything suspicious</p>
-                </div>
-            </div>
+            <a href="ellie.html" class="ellie-icon" title="Ellie's space">
+                🦊
+            </a>
         </div>
-    </section>
+    </footer>
 
     <script>
         // Formspree handles form submission automatically
