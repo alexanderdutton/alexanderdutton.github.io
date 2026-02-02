@@ -143,18 +143,6 @@
             overflow: hidden;
         }
 
-        .hero::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--warm-white);
-            opacity: 0.35;
-            z-index: 0;
-        }
-
         .hero::before {
             content: '';
             position: absolute;
@@ -175,6 +163,10 @@
             text-align: center;
             max-width: 800px;
             margin: 0 auto;
+            padding: 3rem 4rem;
+            background: rgba(250, 246, 240, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(107, 88, 64, 0.15);
         }
 
         .hero .tagline {
