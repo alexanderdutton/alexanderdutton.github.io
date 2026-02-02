@@ -312,20 +312,12 @@
         }
 
         .service-card {
-            background: rgba(250, 246, 240, 0.7);
-            backdrop-filter: blur(10px) saturate(1.1);
+            background: var(--warm-white);
             padding: 2.5rem;
-            border-radius: 12px;
-            border: 1px solid rgba(159, 187, 167, 0.12);
-            box-shadow: 0 4px 16px rgba(107, 88, 64, 0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+            border: 1px solid rgba(184, 168, 140, 0.4);
+            transition: all 0.4s;
             position: relative;
-        }
-
-        .service-card:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(159, 187, 167, 0.15);
-            backdrop-filter: blur(12px) saturate(1.15);
         }
 
         .service-card::before {
@@ -813,7 +805,6 @@
         <div class="container">
             <p>&copy; 2026 Alexander Dutton. Production debugging & project rescue.</p>
             <p class="note">20 years of production debugging and shipping. I don't do whiteboards.</p>
-            <p style="margin-top: 1rem;"><a href="index-old.html" style="color: var(--bamboo); text-decoration: none; font-size: 0.85rem;">🔄 Compare with old version</a></p>
         </div>
     </footer>
 
