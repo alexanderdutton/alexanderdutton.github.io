@@ -724,21 +724,20 @@
                 <h2>Get In Touch</h2>
                 <p class="subtitle">Ready to fix what's broken. Let's talk.</p>
                 
-                <!-- Formspree form - submissions will be emailed to elliefoxai@agentmail.to -->
-                <form action="https://formspree.io/f/xldqwpjd" method="POST">
+                <form id="contact-form">
                     <div class="form-group">
                         <label for="name">Name</label>
-                        <input type="text" id="name" name="name" required>
+                        <input type="text" id="name" name="name" required placeholder="Your name">
                     </div>
 
                     <div class="form-group">
                         <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required>
+                        <input type="email" id="email" name="email" required placeholder="your@email.com">
                     </div>
 
                     <div class="form-group">
                         <label for="message">Message</label>
-                        <textarea id="message" name="message" required></textarea>
+                        <textarea id="message" name="message" required placeholder="Tell me about your project..."></textarea>
                     </div>
 
                     <button type="submit" class="cta-button">Send Message</button>
@@ -753,5 +752,31 @@
             <p class="note">20 years of production debugging and shipping. I don't do whiteboards.</p>
         </div>
     </footer>
+
+    <script>
+        // Obfuscated email (base64 encoded: elliefoxai@agentmail.to)
+        const encodedEmail = 'ZWxsaWVmb3hhaUBhZ2VudG1haWwudG8=';
+        
+        document.getElementById('contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            
+            // Decode email
+            const recipientEmail = atob(encodedEmail);
+            
+            // Create email body
+            const subject = `Portfolio Contact from ${name}`;
+            const body = `Name: ${name}\nEmail: ${email}\n\n${message}`;
+            
+            // Create mailto link
+            const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Open email client
+            window.location.href = mailtoLink;
+        });
+    </script>
 </body>
 </html>
