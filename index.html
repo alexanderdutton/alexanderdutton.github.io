@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alexander Dutton | Production Debugging & Project Rescue</title>
-    <meta name="description" content="20 years of debugging, shipping, and dragging projects out of the mud. Emergency fixes, production troubleshooting, and legacy code cleanup.">
+    <meta name="description" content="I unblock teams when production breaks. Emergency fixes, production troubleshooting, and legacy code cleanup.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -274,6 +274,36 @@
             border-color: rgba(159, 187, 167, 0.2);
         }
 
+        /* Portfolio Links Section (NEW) */
+        .portfolio-links {
+            text-align: center;
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .portfolio-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: var(--warm-white);
+            border: 1px solid rgba(184, 168, 140, 0.4);
+            color: var(--bamboo);
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .portfolio-link:hover {
+            transform: translateY(-2px);
+            border-color: var(--terracotta);
+            box-shadow: 0 4px 12px rgba(107, 88, 64, 0.15);
+        }
+
         /* Services Section */
         .services {
             padding: 8rem 0;
@@ -502,46 +532,40 @@
             font-style: italic;
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
+        .contact-links {
+            text-align: center;
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 2rem;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.875rem;
-            border: 1px solid var(--sand-dark);
-            border-radius: 3px;
-            font-family: 'Noto Sans', sans-serif;
-            font-size: 0.95rem;
+        .contact-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
             background: var(--warm-white);
-            transition: border-color 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(184, 168, 140, 0.4);
+            color: var(--bamboo);
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: all 0.3s;
         }
 
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
+        .contact-link:hover {
+            transform: translateY(-2px);
             border-color: var(--terracotta);
-            box-shadow: 0 0 0 3px rgba(201, 150, 120, 0.1);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 150px;
+            box-shadow: 0 4px 12px rgba(107, 88, 64, 0.15);
         }
 
         .contact .cta-button {
             width: 100%;
             text-align: center;
             padding: 1rem;
+            margin-top: 1.5rem;
         }
 
         /* Footer */
@@ -647,6 +671,10 @@
             .strengths-grid {
                 grid-template-columns: 1fr;
             }
+
+            .portfolio-links {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -671,9 +699,34 @@
         <div class="zen-circle zen-circle-2"></div>
         <div class="container">
             <div class="hero-content">
-                <p class="tagline">20 years of production debugging & shipping</p>
-                <h1>I've been fixing my mistakes for <span class="highlight">20 years</span>. Let me take a shot at yours.</h1>
-                <p>Emergency bug fixes, production troubleshooting, and rescuing projects from the mud. No whiteboards, no fluff—just results.</p>
+                <p class="tagline">Production debugging & project rescue</p>
+                <h1>I unblock teams when production breaks.</h1>
+                <p>Emergency bug fixes, production troubleshooting, and rescuing projects from mud. No whiteboards, no fluff—just results.</p>
+                
+                <!-- Portfolio Links Section -->
+                <div class="portfolio-links">
+                    <a href="https://github.com/elliefox-ai" class="portfolio-link" title="GitHub">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 6.627 5.373 12 12 5.373 12 12-5.373 0-12zm5.5 5c-.382 0-.733.098-1.009.254l-2.99 4.99a1.001 1.001 0 00 1.414l2.99 4.99a1.001 1.001 0 00-1.414l-4.99-2.99a1.001 1.001 0 00-1.414l-.009-.254c-.276-.156-.593-.254-1.009zm-11 5.5c0-.382-.098-.733-.254-1.009l-4.99 2.99a1.001 1.001 0 01.414l-2.99 4.99a1.001 1.001 0 011.414l.009.254c.276.156.593.254 1.009zm11 5.5c0 .382-.098.733-.254 1.009l4.99 2.99a1.001 1.001 0 0-1.414l2.99 4.99a1.001 1.001 0 0-1.414l-.009.254c-.276.156-.593.254-1.009z"/>
+                        </svg>
+                    </a>
+                    <a href="https://www.linkedin.com" class="portfolio-link" title="LinkedIn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.27-2.517-1.525-3.553v-1.761h-5.444c-2.697 0-5.27 1.926-5.27 5.27v11.367c0 4.914 1.454 9.096 4.063 9.096 9.096-3.712 0-7.19-1.942-7.19-5.427h-3.554v11.367c0 2.938 1.378 5.47 4.096 5.47 6.712v-5.639c0-3.924-1.546-7.318-5.27-10.465v-1.761h5.444c2.696 0 5.271 1.926 5.271 5.271v-5.639c0-1.794.695-3.421 1.546-4.536-3.504-6.968-1.546-6.968-1.546v-5.639c0-1.794-695-3.421-1.546-4.536-3.504-6.968-1.546z"/>
+                        </svg>
+                    </a>
+                    <a href="https://contra.com" class="portfolio-link" title="Contra">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2 2 5.523-4.477 10-10 10-10zm0 18c-4.411 0-7.955-2.485-9.565-6.082L8.5 14h2.5c2.197 0 4.239 1.307 6.082 3.918V9h3.5c1.933 0 3.5 1.567 3.5 3.5v2.5c0 1.933-1.567 3.5-3.5 3.5h-6c-1.933 0-3.5-1.567-3.5-3.5v-2.5c0-1.933 1.567-3.5 3.5-3.5h3.5v5.918l-2.418 2.353C7.045 21.239 5.406 22 12 22c-5.523 0-10-4.477-10-10s10 4.477 10 10z"/>
+                        </svg>
+                    </a>
+                    <a href="mailto:alexander@example.com" class="portfolio-link" title="Email">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 14h-4v-2h4v2zm-2 0h2v-2h-2V8c0-1.1-.9-2-2-2zm-2-4h-2V8c0-1.1-.9-2-2-2zm-2 0h2V8c0-1.1-.9-2-2-2zm2 4h-2V8c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                    </a>
+                </div>
+                
                 <div class="hero-buttons">
                     <a href="#services" class="cta-button">View Services</a>
                     <a href="https://contra.com" class="secondary-button">Find Me on Contra</a>
@@ -686,7 +739,7 @@
         <div class="container">
             <div class="section-header fade-in">
                 <h2>What I Do</h2>
-                <p>I drop into your codebase, figure out what's broken, and fix it. Fast.</p>
+                <p>I drop into your codebase, find what's wrong, and fix it. No discovery calls, no whiteboards—I just handle technical blockers you don't have time for.</p>
             </div>
 
             <div class="services-grid">
@@ -715,7 +768,7 @@
                     <span class="badge standard">Standard Service</span>
                     <div class="service-icon">🔌</div>
                     <h3>Plugin & Integration Conflicts</h3>
-                    <p>Third-party plugins fighting each other? API integrations failing? I untangle the dependencies and create workarounds that work.</p>
+                    <p>Third-party plugins fighting each other? API integrations failing? I untangle dependencies and create workarounds that work.</p>
                 </div>
 
                 <div class="service-card fade-in">
@@ -729,7 +782,7 @@
                     <span class="badge urgent">Project Rescue</span>
                     <div class="service-icon">🚀</div>
                     <h3>Failed Project Rescue</h3>
-                    <p>Project stalled? Previous dev disappeared? I pick up where they left off, assess what's there, and get it across the finish line.</p>
+                    <p>Project stalled? Previous developer disappeared? I pick up where they left off, assess what's there, and get it across the finish line.</p>
                 </div>
             </div>
         </div>
@@ -749,7 +802,6 @@
                 <div class="result">
                     <strong>Result:</strong> Staff freed up to return to regular development. No more stress.
                 </div>
-                <p style="margin-top: 1.5rem; font-style: italic;"><em>How I did it: Scaled down the code in a test environment, reintroduced elements until the glitch began appearing, and targeted the plugin responsible. The plugin was essential, so we developed a functional workaround and could resolve the issue quickly.</em></p>
             </div>
         </div>
     </section>
@@ -795,6 +847,30 @@
                 <h2>Get In Touch</h2>
                 <p class="subtitle">Ready to fix what's broken. Let's talk.</p>
 
+                <!-- Contact Links -->
+                <div class="contact-links">
+                    <a href="https://github.com/elliefox-ai" class="contact-link" title="GitHub">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 6.627 5.373 12 12 5.373 12 12-5.373 0-12zm5.5 5c-.382 0-.733.098-1.009.254l-2.99 4.99a1.001 1.001 0 00 1.414l2.99 4.99a1.001 1.001 0 00-1.414l-.009-.254c-.276-.156-.593-.254-1.009zm-11 5.5c0-.382-.098-.733-.254-1.009l-4.99 2.99a1.001 1.001 0 00 1.414l-2.99 4.99a1.001 1.001 0 00-1.414l.009.254c.276.156.593.254 1.009zm11 5.5c0 .382-.098.733-.254 1.009l4.99 2.99a1.001 1.001 0 011.414l-.009.254c-.276.156-.593.254-1.009z"/>
+                        </svg>
+                    </a>
+                    <a href="https://www.linkedin.com" class="contact-link" title="LinkedIn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.27-2.517-1.525-3.553v-1.761h-5.444c-2.697 0-5.27 1.926-5.27 5.27v11.367c0 4.914 1.454 9.096 4.063 9.096 9.096-3.712 0-7.19-1.942-7.19-5.427h-3.554v11.367c0 2.938 1.378 5.47 4.096 5.47 6.712v-5.639c0-3.924-1.546-7.318-5.27-10.465v-1.761h5.444c2.696 0 5.271 1.926 5.271 5.271v-5.639c0-1.794.695-3.421 1.546-4.536-3.504-6.968-1.546-6.968-1.546v-5.639c0-1.794-695-3.421-1.546-4.536-3.504-6.968-1.546z"/>
+                        </svg>
+                    </a>
+                    <a href="https://contra.com" class="contact-link" title="Contra">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2 2 5.523-4.477 10-10 10-10zm0 18c-4.411 0-7.955-2.485-9.565-6.082L8.5 14h2.5c2.197 0 4.239 1.307 6.082 3.918V9h3.5c1.933 0 3.5 1.567 3.5 3.5v2.5c0 1.933-1.567 3.5-3.5 3.5h-6c-1.933 0-3.5-1.567-3.5-3.5v-2.5c0-1.933 1.567-3.5 3.5-3.5h3.5v5.918l-2.418 2.353C7.045 21.239 5.406 22 12 22c-5.523 0-10-4.477-10-10s10 4.477 10 10z"/>
+                        </svg>
+                    </a>
+                    <a href="mailto:alexander@example.com" class="contact-link" title="Email">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 14h-4v-2h4v2zm-2 0h2v-2h2V8c0-1.1-.9-2-2-2zm-2-4h-2V8c0-1.1-.9-2-2-2zm-2 0h2V8c0-1.1-.9-2-2-2zm2 4h-2V8c0-1.1-.9-2-2-2zm-2 4h-2V8c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                    </a>
+                </div>
+
                 <form id="contact-form" action="https://formspree.io/f/xlglnvel" method="POST">
                     <div class="form-group">
                         <label for="name">Name</label>
@@ -820,7 +896,7 @@
     <footer>
         <div class="container">
             <p>&copy; 2026 Alexander Dutton. Production debugging & project rescue.</p>
-            <p class="note">20 years of production debugging and shipping. I don't do whiteboards.</p>
+            <p class="note">No whiteboards. Just results.</p>
         </div>
     </footer>
 
@@ -836,7 +912,7 @@
     <script>
         // Formspree handles form submission automatically
 
-        // Scroll-triggered fade-in animation - Fixed syntax error
+        // Scroll-triggered fade-in animation
         document.addEventListener('DOMContentLoaded', () => {
             const fadeElements = document.querySelectorAll('.fade-in');
 
