@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG CIVILIZATION</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0804; color: #c4a882; font-family: 'Courier New', monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+#game-container { position: relative; }
+canvas { display: block; image-rendering: pixelated; }
+#start-screen, #death-screen, #levelup-screen, #colony-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5,3,1,0.95); z-index: 10; }
+#death-screen, #levelup-screen, #colony-screen { display: none; }
+h1 { font-size: 28px; color: #d4a04a; text-shadow: 0 0 10px #8b6914; margin-bottom: 10px; letter-spacing: 4px; }
+h2 { font-size: 18px; color: #b8935a; margin-bottom: 20px; }
+.subtitle { color: #8a7355; font-size: 12px; margin-bottom: 30px; }
+.start-ant { font-size: 40px; animation: antWalk 2s ease-in-out infinite; }
+@keyframes antWalk { 0%,100% { transform: translateX(-10px); } 50% { transform: translateX(10px); } }
+.prompt { color: #a08060; font-size: 13px; margin-top: 20px; animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.stats-box { text-align: left; margin: 15px 0; font-size: 13px; line-height: 1.8; color: #b8935a; }
+.stats-box span { color: #d4a04a; }
+.death-flavor { color: #6a5540; font-style: italic; font-size: 12px; margin-top: 15px; }
+.upgrade-choice { background: rgba(100,70,30,0.3); border: 1px solid #5a4020; padding: 12px 24px; margin: 8px; cursor: pointer; font-family: inherit; color: #c4a882; font-size: 13px; transition: all 0.2s; width: 280px; text-align: left; }
+.upgrade-choice:hover { background: rgba(140,100,40,0.4); border-color: #a08040; color: #e8c888; }
+.upgrade-name { color: #d4a04a; font-weight: bold; font-size: 14px; }
+.colony-stats { text-align: left; margin: 10px 0; font-size: 13px; line-height: 2; }
+.colony-stats span { color: #d4a04a; }
+button.continue-btn { background: rgba(100,70,30,0.4); border: 1px solid #5a4020; color: #c4a882; font-family: inherit; font-size: 13px; padding: 8px 20px; cursor: pointer; margin-top: 15px; }
+button.continue-btn:hover { background: rgba(140,100,40,0.5); color: #e8c888; }
+.controls-info { color: #6a5540; font-size: 11px; margin-top: 20px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="game-container">
+<canvas id="game"></canvas>
+<div id="start-screen">
+<h1>🐜 BUG CIVILIZATION 🐜</h1>
+<h2>An Ant's Ambition</h2>
+<div class="start-ant">🕷️</div>
+<div class="subtitle">Explore. Fight. Build your colony. Go deeper.</div>
+<div class="prompt">Press ENTER or SPACE to begin</div>
+<div class="controls-info">WASD / Arrow Keys to move<br>Bump into enemies to attack<br>Descend stairs to go deeper</div>
+</div>
+<div id="death-screen">
+<h1 style="color:#8b3030;">COLONY COLLAPSE</h1>
+<div class="death-flavor">The colony remembers...</div>
+<div class="stats-box" id="death-stats"></div>
+<div class="prompt">Press ENTER to try again</div>
+</div>
+<div id="levelup-screen">
+<h1>LEVEL UP</h1>
+<h2 id="levelup-title">Choose an upgrade</h2>
+<div id="upgrade-choices"></div>
+</div>
+<div id="colony-screen">
+<h1>🏥 COLONY STATUS</h1>
+<div class="colony-stats" id="colony-stats-display"></div>
+<button class="continue-btn" id="colony-continue">Descend deeper →</button>
+</div>
+</div>
+
+<script>
+const T = 18; // tile size
+const MW = 42, MH = 30; // map dimensions
+const VIEW_W = MW * T, VIEW_H = MH * T;
+const HUD_H = 90;
+const LOG_H = 80;
+const MINIMAP_S = 3;
+const MINIMAP_X = VIEW_W - MW * MINIMAP_S - 8;
+const MINIMAP_Y = 8;
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = VIEW_W;
+canvas.height = VIEW_H + HUD_H + LOG_H;
+
+// Tile types
+const WALL = 0, FLOOR = 1, CORRIDOR = 2, STAIRS = 3, FOOD = 4, PHEROMONE = 5, EGG = 6;
+
+// Colors
+const COLORS = {
+  wall: '#2a1f14', wallLit: '#3a2a1a',
+  floor: '#4a3520', floorLit: '#5c4328',
+  corridor: '#3d2c1a', corridorLit: '#4e3822',
+  stairs: '#d4a04a', stairsLit: '#e8c060',
+  food: '#7a9a3a', foodLit: '#90b848',
+  pheromone: '#6a5acd', pheromoneLit: '#8878ee',
+  egg: '#c49a6c', eggLit: '#dab880',
+  fog: '#0a0804', dimmed: 'rgba(10,8,4,0.65)',
+  player: '#c84a20',
+  playerAntenna: '#a03818',
+};
+
+const ENEMY_DEFS = {
+  // Floors 1-3
+  rival_ant: { name: 'Rival Ant', color: '#4a3020', ch: 'a', hp: 6, atk: 2, def: 0, xp: 5, behavior: 'chase', minFloor: 1, maxFloor: 5 },
+  beetle: { name: 'Beetle', color: '#2a3a1a', ch: 'b', hp: 10, atk: 2, def: 2, xp: 8, behavior: 'patrol', minFloor: 1, maxFloor: 5 },
+  centipede: { name: 'Centipede', color: '#6a2a2a', ch: 'c', hp: 8, atk: 3, def: 0, xp: 7, behavior: 'chase', minFloor: 1, maxFloor: 6 },
+  // Floors 4-6
+  spider: { name: 'Spider', color: '#1a1a2a', ch: 's', hp: 12, atk: 4, def: 1, xp: 12, behavior: 'ambush', minFloor: 4, maxFloor: 8 },
+  wasp: { name: 'Wasp', color: '#8a8a1a', ch: 'w', hp: 8, atk: 5, def: 0, xp: 10, behavior: 'chase', minFloor: 4, maxFloor: 9 },
+  moth: { name: 'Moth', color: '#5a4a3a', ch: 'm', hp: 14, atk: 3, def: 2, xp: 11, behavior: 'patrol', minFloor: 4, maxFloor: 9 },
+  // Floors 7+
+  fungi: { name: 'Glowing Fungus', color: '#2a8a4a', ch: 'f', hp: 16, atk: 4, def: 3, xp: 15, behavior: 'patrol', minFloor: 7, maxFloor: 99 },
+  grub: { name: 'Eyeless Grub', color: '#8a8a7a', ch: 'g', hp: 20, atk: 5, def: 2, xp: 18, behavior: 'chase', minFloor: 7, maxFloor: 99 },
+  // Boss
+  worm_king: { name: 'The Worm King', color: '#8a1a1a', ch: 'W', hp: 50, atk: 8, def: 4, xp: 50, behavior: 'chase', minFloor: 5, maxFloor: 99, boss: true },
+};
+
+const UPGRADES = [
+  { name: 'Mandible Sharpening', desc: '+2 Attack', apply: p => { p.atk += 2; } },
+  { name: 'Chitin Thickening', desc: '+2 Defense', apply: p => { p.def += 2; } },
+  { name: 'Antennae Sensitivity', desc: '+1 Visibility', apply: p => { p.visRadius += 1; } },
+  { name: 'Royal Jelly', desc: 'Full Heal', apply: p => { p.hp = p.maxHp; } },
+  { name: 'Pheromone Gland', desc: 'Reveal Map', apply: p => { p.revealMap = true; } },
+  { name: 'Resilient Exoskeleton', desc: '+5 Max HP', apply: p => { p.maxHp += 5; p.hp += 5; } },
+  { name: 'Venomous Bite', desc: '+1 ATK, chance to poison', apply: p => { p.atk += 1; p.poisonChance = true; } },
+  { name: 'Swarm Instinct', desc: '+3 ATK when below half HP', apply: p => { p.swarmInstinct = true; } },
+];
+
+let game = null;
+
+function rng(seed) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+}
+
+class Game {
+  constructor() {
+    this.state = 'start'; // start, play, dead, levelup, colony
+    this.player = null;
+    this.map = [];
+    this.visible = [];
+    this.revealed = [];
+    this.enemies = [];
+    this.items = [];
+    this.log = [];
+    this.floor = 0;
+    this.score = 0;
+    this.kills = 0;
+    this.turns = 0;
+    this.colony = { workers: 1, soldiers: 0, food: 3 };
+    this.pendingLevelUps = 0;
+    this.highScore = parseInt(localStorage.getItem('bugciv_high') || '0');
+    this.animFrame = 0;
+    this.setupInput();
+    this.loop();
+  }
+
+  setupInput() {
+    document.addEventListener('keydown', e => {
+      if (this.state === 'start') {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.startGame(); }
+        return;
+      }
+      if (this.state === 'dead') {
+        if (e.key === 'Enter') { document.getElementById('death-screen').style.display = 'none'; this.state = 'start'; document.getElementById('start-screen').style.display = 'flex'; }
+        return;
+      }
+      if (this.state !== 'play') return;
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowUp' || e.key === 'w') dy = -1;
+      else if (e.key === 'ArrowDown' || e.key === 's') dy = 1;
+      else if (e.key === 'ArrowLeft' || e.key === 'a') dx = -1;
+      else if (e.key === 'ArrowRight' || e.key === 'd') dx = 1;
+      else if (e.key === '.' || e.key === ' ') { dx = 0; dy = 0; } // wait
+      else return;
+      e.preventDefault();
+      if (dx === 0 && dy === 0) { this.turns++; this.moveEnemies(); this.updateFOV(); return; }
+      this.movePlayer(dx, dy);
+    });
+  }
+
+  startGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    this.player = { x: 0, y: 0, hp: 12, maxHp: 12, atk: 3, def: 1, level: 1, xp: 0, xpNext: 10, visRadius: 5, poisonChance: false, swarmInstinct: false, revealMap: false, food: 0 };
+    this.floor = 0;
+    this.score = 0;
+    this.kills = 0;
+    this.turns = 0;
+    this.colony = { workers: 1, soldiers: 0, food: 3 };
+    this.log = [];
+    this.pendingLevelUps = 0;
+    this.addLog('You awaken in the dark earth. Time to build your colony.');
+    this.descend();
+  }
+
+  descend() {
+    this.floor++;
+    this.generateFloor();
+    this.updateFOV();
+    if (this.floor > 1) {
+      // Between floors colony screen
+      this.showColonyScreen();
+    } else {
+      this.state = 'play';
+    }
+  }
+
+  showColonyScreen() {
+    this.state = 'colony';
+    const el = document.getElementById('colony-stats-display');
+    const healAmount = Math.min(this.colony.food, Math.floor(this.player.maxHp * 0.3));
+    el.innerHTML = `
+      Floor ${this.floor} awaits below...<br><br>
+      <span>Workers:</span> ${this.colony.workers} <span>Soldiers:</span> ${this.colony.soldiers}<br>
+      <span>Food Stores:</span> ${this.colony.food}<br>
+      <span>Colony Bonus:</span> +${this.colony.workers} ATK, +${this.colony.soldiers} DEF, +${Math.floor(this.colony.workers/2)} MaxHP<br><br>
+      ${healAmount > 0 ? `<span>Healing:</span> ${healAmount} HP from food stores` : '<span>No food to heal with.</span>'}
+    `;
+    document.getElementById('colony-screen').style.display = 'flex';
+    document.getElementById('colony-continue').onclick = () => {
+      // Heal from food
+      const heal = Math.min(this.colony.food, Math.floor(this.player.maxHp * 0.3));
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+      this.colony.food -= heal;
+      this.player.atk = 3 + Math.floor(this.colony.workers * 0.5);
+      this.player.def = 1 + Math.floor(this.colony.soldiers * 0.5);
+      this.player.maxHp = 12 + this.colony.workers * 2;
+      if (this.player.hp > this.player.maxHp) this.player.hp = this.player.maxHp;
+      document.getElementById('colony-screen').style.display = 'none';
+      this.state = 'play';
+      this.addLog(`You descend to floor ${this.floor}. The darkness welcomes you.`);
+    };
+  }
+
+  generateFloor() {
+    const rand = rng(Date.now() + this.floor * 7919);
+    this.map = Array.from({length: MH}, () => Array(MW).fill(WALL));
+    this.visible = Array.from({length: MH}, () => Array(MW).fill(false));
+    this.revealed = Array.from({length: MH}, () => Array(MW).fill(false));
+    this.enemies = [];
+    this.items = [];
+
+    // Generate rooms
+    const rooms = [];
+    const numRooms = 5 + Math.min(this.floor, 6);
+    for (let attempt = 0; attempt < 80 && rooms.length < numRooms; attempt++) {
+      const w = 4 + Math.floor(rand() * 5);
+      const h = 3 + Math.floor(rand() * 4);
+      const x = 1 + Math.floor(rand() * (MW - w - 2));
+      const y = 1 + Math.floor(rand() * (MH - h - 2));
+      let overlap = false;
+      for (const r of rooms) {
+        if (x < r.x + r.w + 1 && x + w + 1 > r.x && y < r.y + r.h + 1 && y + h + 1 > r.y) { overlap = true; break; }
+      }
+      if (!overlap) rooms.push({x, y, w, h});
+    }
+
+    // Carve rooms
+    for (const r of rooms) {
+      for (let ry = r.y; ry < r.y + r.h; ry++)
+        for (let rx = r.x; rx < r.x + r.w; rx++)
+          this.map[ry][rx] = FLOOR;
+    }
+
+    // Connect rooms with corridors
+    for (let i = 1; i < rooms.length; i++) {
+      const a = rooms[i - 1], b = rooms[i];
+      const ax = Math.floor(a.x + a.w / 2), ay = Math.floor(a.y + a.h / 2);
+      const bx = Math.floor(b.x + b.w / 2), by = Math.floor(b.y + b.h / 2);
+      let cx = ax, cy = ay;
+      while (cx !== bx) {
+        if (this.map[cy][cx] === WALL) this.map[cy][cx] = CORRIDOR;
+        cx += cx < bx ? 1 : -1;
+      }
+      while (cy !== by) {
+        if (this.map[cy][cx] === WALL) this.map[cy][cx] = CORRIDOR;
+        cy += cy < by ? 1 : -1;
+      }
+      if (this.map[cy][cx] === WALL) this.map[cy][cx] = CORRIDOR;
+    }
+
+    // Place player in first room
+    const startRoom = rooms[0];
+    this.player.x = Math.floor(startRoom.x + startRoom.w / 2);
+    this.player.y = Math.floor(startRoom.y + startRoom.h / 2);
+
+    // Place stairs in last room
+    const endRoom = rooms[rooms.length - 1];
+    const sx = Math.floor(endRoom.x + endRoom.w / 2);
+    const sy = Math.floor(endRoom.y + endRoom.h / 2);
+    this.map[sy][sx] = STAIRS;
+
+    // Populate rooms
+    for (let i = 1; i < rooms.length; i++) {
+      const r = rooms[i];
+      const isBoss = this.floor % 5 === 0 && i === rooms.length - 1;
+
+      // Enemies
+      const numEnemies = Math.min(1 + Math.floor(this.floor / 2) + (rand() < 0.4 ? 1 : 0), 4);
+      if (isBoss) {
+        this.spawnEnemy('worm_king', r.x + Math.floor(r.w/2), r.y + Math.floor(r.h/2));
+      } else {
+        for (let e = 0; e < numEnemies; e++) {
+          const type = this.pickEnemyType(rand);
+          const ex = r.x + 1 + Math.floor(rand() * (r.w - 2));
+          const ey = r.y + 1 + Math.floor(rand() * (r.h - 2));
+          if (this.map[ey][ex] >= FLOOR && !(ex === this.player.x && ey === this.player.y)) {
+            this.spawnEnemy(type, ex, ey);
+          }
+        }
+      }
+
+      // Items
+      if (rand() < 0.5) {
+        const ix = r.x + 1 + Math.floor(rand() * (r.w - 2));
+        const iy = r.y + 1 + Math.floor(rand() * (r.h - 2));
+        if (this.map[iy][ix] >= FLOOR) {
+          const r2 = rand();
+          if (r2 < 0.4) this.map[iy][ix] = FOOD;
+          else if (r2 < 0.65) this.map[iy][ix] = EGG;
+          else this.map[iy][ix] = PHEROMONE;
+        }
+      }
+    }
+
+    // If player has reveal map, show all
+    if (this.player.revealMap) {
+      this.player.revealMap = false;
+      for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) this.revealed[y][x] = true;
+    }
+  }
+
+  pickEnemyType(rand) {
+    const types = Object.entries(ENEMY_DEFS).filter(([,d]) => !d.boss && this.floor >= d.minFloor && this.floor <= d.maxFloor);
+    if (!types.length) return 'rival_ant';
+    // Weight toward floor-appropriate
+    const weights = types.map(([,d]) => {
+      const mid = (d.minFloor + d.maxFloor) / 2;
+      return 1 / (1 + Math.abs(this.floor - mid));
+    });
+    const total = weights.reduce((a,b) => a+b, 0);
+    let r = rand() * total;
+    for (let i = 0; i < types.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return types[i][0];
+    }
+    return types[types.length - 1][0];
+  }
+
+  spawnEnemy(type, x, y) {
+    const def = ENEMY_DEFS[type];
+    const scale = 1 + (this.floor - 1) * 0.12;
+    this.enemies.push({
+      type, x, y,
+      name: def.name, color: def.color, ch: def.ch,
+      hp: Math.floor(def.hp * scale), maxHp: Math.floor(def.hp * scale),
+      atk: Math.floor(def.atk * scale), def: Math.floor(def.def * scale),
+      xp: def.xp, behavior: def.behavior, boss: !!def.boss,
+      patrolDir: Math.floor(Math.random() * 4),
+      poison: 0, ambushed: false,
+    });
+  }
+
+  updateFOV() {
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) this.visible[y][x] = false;
+    const r = this.player.visRadius;
+    const px = this.player.x, py = this.player.y;
+    for (let y = Math.max(0, py - r); y <= Math.min(MH - 1, py + r); y++) {
+      for (let x = Math.max(0, px - r); x <= Math.min(MW - 1, px + r); x++) {
+        const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+        if (dist <= r && this.hasLineOfSight(px, py, x, y)) {
+          this.visible[y][x] = true;
+          this.revealed[y][x] = true;
+        }
+      }
+    }
+  }
+
+  hasLineOfSight(x0, y0, x1, y1) {
+    let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy, x = x0, y = y0;
+    while (true) {
+      if (x === x1 && y === y1) return true;
+      if (this.map[y]?.[x] === WALL && !(x === x0 && y === y0)) return false;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x += sx; }
+      if (e2 < dx) { err += dx; y += sy; }
+    }
+  }
+
+  movePlayer(dx, dy) {
+    const nx = this.player.x + dx, ny = this.player.y + dy;
+    if (nx < 0 || nx >= MW || ny < 0 || ny >= MH) return;
+    if (this.map[ny][nx] === WALL) return;
+
+    // Check enemy
+    const enemy = this.enemies.find(e => e.x === nx && e.y === ny);
+    if (enemy) {
+      this.attackEnemy(enemy);
+    } else {
+      this.player.x = nx;
+      this.player.y = ny;
+      this.pickupItems();
+      if (this.map[ny][nx] === STAIRS) {
+        this.addLog('You find the stairs descending deeper...');
+        this.descend();
+        return;
+      }
+    }
+
+    this.turns++;
+    this.moveEnemies();
+    this.updateFOV();
+    this.checkLevelUp();
+  }
+
+  attackEnemy(enemy) {
+    let atk = this.player.atk;
+    if (this.player.swarmInstinct && this.player.hp < this.player.maxHp / 2) atk += 3;
+    const dmg = Math.max(1, atk - enemy.def + Math.floor(Math.random() * 3) - 1);
+    enemy.hp -= dmg;
+    let extra = '';
+    if (this.player.poisonChance && Math.random() < 0.3) {
+      enemy.poison += 3;
+      extra = ' (poisoned!)';
+    }
+    this.addLog(`You bite the ${enemy.name} for ${dmg} damage!${extra}`);
+    if (enemy.hp <= 0) {
+      this.killEnemy(enemy);
+    }
+  }
+
+  killEnemy(enemy) {
+    this.enemies = this.enemies.filter(e => e !== enemy);
+    this.player.xp += enemy.xp;
+    this.kills++;
+    this.score += enemy.xp * this.floor;
+    this.addLog(`The ${enemy.name} is slain! (+${enemy.xp} XP)`);
+    // Drop food
+    if (Math.random() < 0.6) {
+      this.map[enemy.y][enemy.x] = FOOD;
+    }
+    if (enemy.boss) {
+      this.addLog('The earth trembles. The Worm King falls!');
+      this.score += 200;
+    }
+  }
+
+  pickupItems() {
+    const {x, y} = this.player;
+    if (this.map[y][x] === FOOD) {
+      this.map[y][x] = FLOOR;
+      this.player.food++;
+      this.colony.food++;
+      const heal = 3 + Math.floor(this.player.level / 2);
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
+      this.addLog(`Found food! (+${heal} HP, food stored)`);
+    } else if (this.map[y][x] === PHEROMONE) {
+      this.map[y][x] = FLOOR;
+      this.addLog('Pheromone trail absorbed! Map revealed.');
+      for (let ry = 0; ry < MH; ry++) for (let rx = 0; rx < MW; rx++) this.revealed[ry][rx] = true;
+    } else if (this.map[y][x] === EGG) {
+      this.map[y][x] = FLOOR;
+      if (Math.random() < 0.5) {
+        this.colony.workers++;
+        this.addLog('Egg chamber found! A new worker joins the colony.');
+      } else {
+        this.colony.soldiers++;
+        this.addLog('Egg chamber found! A new soldier joins the colony.');
+      }
+      this.score += 25;
+    }
+  }
+
+  moveEnemies() {
+    for (const e of this.enemies) {
+      // Poison tick
+      if (e.poison > 0) {
+        e.hp -= 1;
+        e.poison--;
+        if (e.hp <= 0) { this.killEnemy(e); continue; }
+      }
+
+      const dist = Math.abs(e.x - this.player.x) + Math.abs(e.y - this.player.y);
+      const canSee = this.visible[e.y]?.[e.x];
+
+      if (e.behavior === 'ambush' && !e.ambushed) {
+        if (canSee && dist <= 3) {
+          e.ambushed = true;
+          this.addLog(`The ${e.name} lunges from the shadows!`);
+        } else {
+          continue;
+        }
+      }
+
+      let dx = 0, dy = 0;
+      if (e.behavior === 'chase' || (e.behavior === 'ambush' && e.ambushed)) {
+        if (dist <= 8 || (e.behavior === 'chase' && dist <= 5)) {
+          dx = Math.sign(this.player.x - e.x);
+          dy = Math.sign(this.player.y - e.y);
+          if (dx !== 0 && dy !== 0) {
+            if (Math.random() < 0.5) dx = 0; else dy = 0;
+          }
+        } else {
+          // Random move
+          const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+          const d = dirs[Math.floor(Math.random() * 4)];
+          dx = d[0]; dy = d[1];
+        }
+      } else if (e.behavior === 'patrol') {
+        const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+        if (Math.random() < 0.3) e.patrolDir = Math.floor(Math.random() * 4);
+        dx = dirs[e.patrolDir][0]; dy = dirs[e.patrolDir][1];
+      }
+
+      const nx = e.x + dx, ny = e.y + dy;
+      if (nx < 0 || nx >= MW || ny < 0 || ny >= MH) continue;
+      if (this.map[ny][nx] === WALL) continue;
+
+      // Attack player?
+      if (nx === this.player.x && ny === this.player.y) {
+        const dmg = Math.max(1, e.atk - this.player.def + Math.floor(Math.random() * 2));
+        this.player.hp -= dmg;
+        this.addLog(`The ${e.name} hits you for ${dmg} damage!`);
+        if (this.player.hp <= 0) this.die();
+        continue;
+      }
+
+      // Move if not blocked by another enemy
+      if (!this.enemies.some(other => other !== e && other.x === nx && other.y === ny)) {
+        e.x = nx; e.y = ny;
+      }
+    }
+  }
+
+  checkLevelUp() {
+    while (this.player.xp >= this.player.xpNext) {
+      this.player.xp -= this.player.xpNext;
+      this.player.level++;
+      this.player.xpNext = Math.floor(this.player.xpNext * 1.5);
+      this.player.maxHp += 3;
+      this.player.hp = Math.min(this.player.hp + 5, this.player.maxHp);
+      this.pendingLevelUps++;
+    }
+    if (this.pendingLevelUps > 0) this.showLevelUp();
+  }
+
+  showLevelUp() {
+    this.pendingLevelUps--;
+    this.state = 'levelup';
+    const screen = document.getElementById('levelup-screen');
+    screen.style.display = 'flex';
+    document.getElementById('levelup-title').textContent = `Level ${this.player.level} — Choose an upgrade`;
+
+    const choices = document.getElementById('upgrade-choices');
+    choices.innerHTML = '';
+
+    // Pick 2 random upgrades
+    const shuffled = [...UPGRADES].sort(() => Math.random() - 0.5);
+    const options = shuffled.slice(0, 2);
+
+    for (const opt of options) {
+      const btn = document.createElement('button');
+      btn.className = 'upgrade-choice';
+      btn.innerHTML = `<div class="upgrade-name">${opt.name}</div><div>${opt.desc}</div>`;
+      btn.onclick = () => {
+        opt.apply(this.player);
+        screen.style.display = 'none';
+        this.addLog(`Upgrade: ${opt.name}!`);
+        if (this.pendingLevelUps > 0) {
+          this.showLevelUp();
+        } else {
+          this.state = 'play';
+        }
+      };
+      choices.appendChild(btn);
+    }
+  }
+
+  die() {
+    this.state = 'dead';
+    this.score += this.floor * 50 + this.colony.workers * 10 + this.colony.soldiers * 15;
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      localStorage.setItem('bugciv_high', this.score);
+    }
+    const el = document.getElementById('death-stats');
+    el.innerHTML = `
+      <span>Floor Reached:</span> ${this.floor}<br>
+      <span>Level:</span> ${this.player.level}<br>
+      <span>Enemies Slain:</span> ${this.kills}<br>
+      <span>Turns Taken:</span> ${this.turns}<br>
+      <span>Colony Size:</span> ${this.colony.workers + this.colony.soldiers} (${this.colony.workers} workers, ${this.colony.soldiers} soldiers)<br>
+      <span>Score:</span> ${this.score}<br>
+      <span>High Score:</span> ${this.highScore}
+    `;
+    document.getElementById('death-screen').style.display = 'flex';
+  }
+
+  addLog(msg) {
+    this.log.push(msg);
+    if (this.log.length > 50) this.log.shift();
+  }
+
+  // ===== RENDERING =====
+  loop() {
+    this.animFrame++;
+    if (this.state === 'play') this.render();
+    else if (this.state === 'start') this.renderStart();
+    requestAnimationFrame(() => this.loop());
+  }
+
+  renderStart() {
+    // Start screen is HTML, canvas just dark
+    ctx.fillStyle = '#0a0804';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  render() {
+    ctx.fillStyle = '#0a0804';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const px = this.player.x, py = this.player.y;
+
+    // Draw map
+    for (let y = 0; y < MH; y++) {
+      for (let x = 0; x < MW; x++) {
+        const sx = x * T, sy = y * T;
+        if (this.visible[y][x]) {
+          this.drawTile(x, y, sx, sy, true);
+        } else if (this.revealed[y][x]) {
+          this.drawTile(x, y, sx, sy, false);
+        }
+        // else stays black
+      }
+    }
+
+    // Draw enemies (only visible)
+    for (const e of this.enemies) {
+      if (this.visible[e.y]?.[e.x]) {
+        this.drawEnemy(e, e.x * T, e.y * T);
+      }
+    }
+
+    // Draw player
+    this.drawPlayer(px * T, py * T);
+
+    // Draw minimap
+    ctx.fillStyle = 'rgba(10,8,4,0.7)';
+    ctx.fillRect(MINIMAP_X - 2, MINIMAP_Y - 2, MW * MINIMAP_S + 4, MH * MINIMAP_S + 4);
+    for (let y = 0; y < MH; y++) {
+      for (let x = 0; x < MW; x++) {
+        if (!this.revealed[y][x]) continue;
+        const mx = MINIMAP_X + x * MINIMAP_S, my = MINIMAP_Y + y * MINIMAP_S;
+        if (this.visible[y][x]) {
+          ctx.fillStyle = this.map[y][x] === WALL ? '#1a1410' : '#5a4530';
+        } else {
+          ctx.fillStyle = this.map[y][x] === WALL ? '#0f0c08' : '#3a2a1a';
+        }
+        ctx.fillRect(mx, my, MINIMAP_S, MINIMAP_S);
+      }
+    }
+    // Player dot on minimap
+    ctx.fillStyle = '#ff4422';
+    ctx.fillRect(MINIMAP_X + px * MINIMAP_S, MINIMAP_Y + py * MINIMAP_S, MINIMAP_S, MINIMAP_S);
+    // Stairs dot
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+      if (this.map[y][x] === STAIRS && this.revealed[y][x]) {
+        ctx.fillStyle = '#d4a04a';
+        ctx.fillRect(MINIMAP_X + x * MINIMAP_S, MINIMAP_Y + y * MINIMAP_S, MINIMAP_S, MINIMAP_S);
+      }
+    }
+
+    // HUD
+    const hudY = VIEW_H;
+    ctx.fillStyle = '#1a1408';
+    ctx.fillRect(0, hudY, VIEW_W, HUD_H);
+    ctx.strokeStyle = '#3a2a18';
+    ctx.strokeRect(0, hudY, VIEW_W, HUD_H);
+
+    ctx.font = '13px Courier New';
+    const hpPct = this.player.hp / this.player.maxHp;
+    // HP bar
+    ctx.fillStyle = '#3a1a1a';
+    ctx.fillRect(10, hudY + 8, 150, 14);
+    ctx.fillStyle = hpPct > 0.5 ? '#5a8a2a' : hpPct > 0.25 ? '#8a7a1a' : '#8a2a1a';
+    ctx.fillRect(10, hudY + 8, 150 * hpPct, 14);
+    ctx.strokeStyle = '#5a4a30';
+    ctx.strokeRect(10, hudY + 8, 150, 14);
+    ctx.fillStyle = '#e8d8b8';
+    ctx.fillText(`HP: ${this.player.hp}/${this.player.maxHp}`, 16, hudY + 19);
+
+    // XP bar
+    const xpPct = this.player.xp / this.player.xpNext;
+    ctx.fillStyle = '#1a1a3a';
+    ctx.fillRect(10, hudY + 26, 150, 10);
+    ctx.fillStyle = '#4a4a8a';
+    ctx.fillRect(10, hudY + 26, 150 * xpPct, 10);
+    ctx.strokeStyle = '#3a3a5a';
+    ctx.strokeRect(10, hudY + 26, 150, 10);
+    ctx.fillStyle = '#b0a0c0';
+    ctx.font = '10px Courier New';
+    ctx.fillText(`XP: ${this.player.xp}/${this.player.xpNext}`, 14, hudY + 34);
+
+    // Stats
+    ctx.font = '12px Courier New';
+    ctx.fillStyle = '#c4a882';
+    ctx.fillText(`Floor ${this.floor}`, 180, hudY + 18);
+    ctx.fillText(`Lv ${this.player.level}`, 180, hudY + 33);
+    ctx.fillText(`ATK ${this.player.atk}  DEF ${this.player.def}`, 260, hudY + 18);
+    ctx.fillText(`Food: ${this.player.food}  Kills: ${this.kills}`, 260, hudY + 33);
+
+    // Colony
+    ctx.fillStyle = '#a08860';
+    ctx.fillText(`Colony: ${this.colony.workers}W ${this.colony.soldiers}S | Stores: ${this.colony.food}`, 10, hudY + 50);
+
+    // Score
+    ctx.fillStyle = '#8a7a5a';
+    ctx.fillText(`Score: ${this.score}  |  Vis: ${this.player.visRadius}`, 10, hudY + 65);
+    ctx.fillText(`High: ${this.highScore}`, 260, hudY + 65);
+
+    // Messages log
+    const logY = hudY + HUD_H;
+    ctx.fillStyle = '#0f0c08';
+    ctx.fillRect(0, logY, VIEW_W, LOG_H);
+    ctx.strokeStyle = '#2a1a10';
+    ctx.strokeRect(0, logY, VIEW_W, LOG_H);
+    ctx.font = '11px Courier New';
+    const maxLines = 5;
+    const startIdx = Math.max(0, this.log.length - maxLines);
+    for (let i = startIdx; i < this.log.length; i++) {
+      const age = this.log.length - 1 - i;
+      const alpha = Math.max(0.4, 1 - age * 0.15);
+      ctx.fillStyle = `rgba(180,160,130,${alpha})`;
+      ctx.fillText(this.log[i], 8, logY + 14 + (i - startIdx) * 14);
+    }
+
+    // Visibility radius indicator
+    ctx.strokeStyle = 'rgba(200,180,130,0.05)';
+    ctx.beginPath();
+    ctx.arc(px * T + T/2, py * T + T/2, this.player.visRadius * T, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  drawTile(x, y, sx, sy, lit) {
+    const tile = this.map[y][x];
+    switch (tile) {
+      case WALL:
+        ctx.fillStyle = lit ? COLORS.wallLit : COLORS.wall;
+        ctx.fillRect(sx, sy, T, T);
+        // Subtle texture
+        if (lit && (x + y) % 3 === 0) {
+          ctx.fillStyle = 'rgba(60,45,25,0.3)';
+          ctx.fillRect(sx + 2, sy + 2, T - 4, T - 4);
+        }
+        break;
+      case FLOOR:
+      case CORRIDOR:
+        ctx.fillStyle = lit ? (tile === FLOOR ? COLORS.floorLit : COLORS.corridorLit) : (tile === FLOOR ? COLORS.floor : COLORS.corridor);
+        ctx.fillRect(sx, sy, T, T);
+        // Floor specks
+        if (lit && (x * 7 + y * 13) % 5 === 0) {
+          ctx.fillStyle = 'rgba(90,70,40,0.3)';
+          ctx.fillRect(sx + 6, sy + 6, 2, 2);
+        }
+        break;
+      case STAIRS:
+        ctx.fillStyle = lit ? COLORS.stairsLit : COLORS.stairs;
+        ctx.fillRect(sx, sy, T, T);
+        if (lit) {
+          ctx.fillStyle = '#3a2a14';
+          ctx.fillRect(sx + 3, sy + 4, T - 6, 3);
+          ctx.fillRect(sx + 5, sy + 9, T - 10, 3);
+          ctx.fillRect(sx + 7, sy + 14, T - 14, 2);
+        }
+        break;
+      case FOOD:
+        ctx.fillStyle = lit ? COLORS.floorLit : COLORS.floor;
+        ctx.fillRect(sx, sy, T, T);
+        if (lit) {
+          ctx.fillStyle = COLORS.foodLit;
+          ctx.beginPath();
+          ctx.arc(sx + T/2, sy + T/2, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#5a7a2a';
+          ctx.fillRect(sx + T/2 - 1, sy + T/2 - 5, 2, 4);
+        }
+        break;
+      case PHEROMONE:
+        ctx.fillStyle = lit ? COLORS.floorLit : COLORS.floor;
+        ctx.fillRect(sx, sy, T, T);
+        if (lit) {
+          ctx.fillStyle = 'rgba(106,90,205,0.5)';
+          ctx.beginPath();
+          ctx.arc(sx + T/2, sy + T/2, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(136,120,238,0.3)';
+          ctx.beginPath();
+          ctx.arc(sx + T/2, sy + T/2, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      case EGG:
+        ctx.fillStyle = lit ? COLORS.floorLit : COLORS.floor;
+        ctx.fillRect(sx, sy, T, T);
+        if (lit) {
+          ctx.fillStyle = COLORS.eggLit;
+          ctx.beginPath();
+          ctx.ellipse(sx + T/2, sy + T/2, 5, 7, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#e8d0a8';
+          ctx.beginPath();
+          ctx.ellipse(sx + T/2 - 1, sy + T/2 - 2, 2, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+    }
+    // Dim overlay for non-lit revealed tiles
+    if (!lit && this.revealed[y][x]) {
+      ctx.fillStyle = COLORS.dimmed;
+      ctx.fillRect(sx, sy, T, T);
+    }
+  }
+
+  drawPlayer(sx, sy) {
+    // Body
+    ctx.fillStyle = COLORS.player;
+    ctx.beginPath();
+    ctx.ellipse(sx + T/2, sy + T/2 + 1, 5, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head
+    ctx.fillStyle = '#d85828';
+    ctx.beginPath();
+    ctx.arc(sx + T/2, sy + 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Antennae
+    ctx.strokeStyle = COLORS.playerAntenna;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx + T/2 - 3, sy + 4);
+    ctx.lineTo(sx + T/2 - 7, sy - 1);
+    ctx.moveTo(sx + T/2 + 3, sy + 4);
+    ctx.lineTo(sx + T/2 + 7, sy - 1);
+    ctx.stroke();
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(sx + T/2 - 3, sy + 4, 2, 2);
+    ctx.fillRect(sx + T/2 + 1, sy + 4, 2, 2);
+    // Legs
+    ctx.strokeStyle = '#a03818';
+    ctx.lineWidth = 1;
+    const legPhase = Math.sin(this.animFrame * 0.1) * 2;
+    ctx.beginPath();
+    ctx.moveTo(sx + T/2 - 4, sy + T/2 + 2); ctx.lineTo(sx + T/2 - 8, sy + T/2 + 5 + legPhase);
+    ctx.moveTo(sx + T/2 + 4, sy + T/2 + 2); ctx.lineTo(sx + T/2 + 8, sy + T/2 + 5 - legPhase);
+    ctx.moveTo(sx + T/2 - 3, sy + T/2 + 5); ctx.lineTo(sx + T/2 - 7, sy + T/2 + 8 - legPhase);
+    ctx.moveTo(sx + T/2 + 3, sy + T/2 + 5); ctx.lineTo(sx + T/2 + 7, sy + T/2 + 8 + legPhase);
+    ctx.stroke();
+  }
+
+  drawEnemy(e, sx, sy) {
+    const s = e.boss ? 8 : 5;
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.arc(sx + T/2, sy + T/2, s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Boss glow
+    if (e.boss) {
+      ctx.fillStyle = `rgba(180,30,30,${0.2 + 0.1 * Math.sin(this.animFrame * 0.05)})`;
+      ctx.beginPath();
+      ctx.arc(sx + T/2, sy + T/2, s + 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Letter
+    ctx.fillStyle = '#e8d8b8';
+    ctx.font = e.boss ? 'bold 11px Courier New' : '9px Courier New';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(e.ch, sx + T/2, sy + T/2 + 1);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    // HP bar for damaged enemies
+    if (e.hp < e.maxHp) {
+      const barW = T - 2;
+      ctx.fillStyle = '#3a1a1a';
+      ctx.fillRect(sx + 1, sy - 3, barW, 3);
+      ctx.fillStyle = '#8a2a1a';
+      ctx.fillRect(sx + 1, sy - 3, barW * (e.hp / e.maxHp), 3);
+    }
+
+    // Poison indicator
+    if (e.poison > 0) {
+      ctx.fillStyle = '#2a8a2a';
+      ctx.fillRect(sx + T - 4, sy + 1, 3, 3);
+    }
+  }
+}
+
+game = new Game();
+</script>
+</body>
+</html>
