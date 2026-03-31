@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salvage Drift</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;cursor:crosshair}
+canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d');
+let W,H;function resize(){W=C.width=innerWidth;H=C.height=innerHeight}resize();addEventListener('resize',resize);
+
+const WORLD=5000,SHIP_R=14,STATION_R=80,GRAB_R=80,MARGIN=200;
+const FRICTION=0.997,THRUST=0.15,STRAFE_THRUST=0.09,ROT_LERP=0.12,MAX_SPD=6,MAX_TOW=4;
+
+let state='menu',credits=0,hp=3,wave=1,waveTimer=0,shakeX=0,shakeY=0,shakeMag=0;
+let ship,debris=[],asteroids=[],particles=[],stars=[],towing=[];
+let keys={},mouse={x:0,y:0,world:{x:0,y:0}};
+
+const rand=(a,b)=>Math.random()*(b-a)+a;
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+
+function initStars(){
+  stars=[];
+  for(let i=0;i<300;i++) stars.push({x:rand(0,WORLD),y:rand(0,WORLD),s:rand(0.5,2),p:rand(0.05,0.2),b:rand(0.3,1)});
+}
+
+function initShip(){
+  ship={x:WORLD/2,y:WORLD/2,vx:0,vy:0,angle:0,thrusting:false};
+}
+
+const DEBRIS_TYPES=[
+  {name:'scrap',mass:1,r:12,sides:4,color:'#e8922a',credits:50},
+  {name:'cargo',mass:2.5,r:22,sides:5,color:'#d4760a',credits:120},
+  {name:'hull section',mass:5,r:35,sides:6,color:'#c25a0a',credits:250},
+];
+
+function spawnDebris(){
+  let t=DEBRIS_TYPES[Math.random()<0.5?0:Math.random()<0.6?1:2];
+  let angle=rand(0,Math.PI*2),d=rand(400,WORLD/2-100);
+  debris.push({
+    ...t,x:WORLD/2+Math.cos(angle)*d,y:WORLD/2+Math.sin(angle)*d,
+    rot:rand(0,6.28),rotSpd:rand(-0.02,0.02),vx:rand(-0.3,0.3),vy:rand(-0.3,0.3),
+    verts:makePoly(t.r,t.sides,0.3)
+  });
+}
+
+function makePoly(r,n,jag){
+  let v=[];
+  for(let i=0;i<n;i++){let a=6.2832/n*i;v.push({x:Math.cos(a)*r*rand(1-jag,1),y:Math.sin(a)*r*rand(1-jag,1)})}
+  return v;
+}
+
+function spawnAsteroid(){
+  let r=rand(15,45);
+  let x,y;
+  let side=Math.floor(rand(0,4));
+  if(side===0){x=rand(0,WORLD);y=rand(-MARGIN,0)}
+  else if(side===1){x=rand(0,WORLD);y=rand(WORLD,WORLD+MARGIN)}
+  else if(side===2){x=rand(-MARGIN,0);y=rand(0,WORLD)}
+  else{x=rand(WORLD,WORLD+MARGIN);y=rand(0,WORLD)}
+  let spd=rand(0.3,1.2+wave*0.08);
+  let ang=rand(0,6.28);
+  let sides=Math.floor(rand(6,10));
+  let isMobile=Math.random()<0.35+wave*0.05;
+  asteroids.push({
+    x,y,r,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
+    rot:rand(0,6.28),rotSpd:rand(-0.01,0.01),
+    color:`hsl(${rand(20,50)},${rand(10,30)}%,${rand(25,45)}%)`,
+    verts:makePoly(r,sides,0.35),
+    mobile:isMobile,
+    mobileSpd:isMobile?rand(0.5,1.5+wave*0.1):0,
+    mobileAngle:rand(0,6.28),
+    mobileTimer:rand(0,200),
+    glowPhase:rand(0,6.28)
+  });
+}
+
+function emitThrust(){
+  let a=ship.angle+Math.PI+rand(-0.4,0.4);
+  particles.push({x:ship.x-Math.cos(ship.angle)*SHIP_R,y:ship.y-Math.sin(ship.angle)*SHIP_R,
+    vx:Math.cos(a)*rand(1,3)+ship.vx*0.3,vy:Math.sin(a)*rand(1,3)+ship.vy*0.3,
+    life:1,decay:rand(0.02,0.05),s:rand(1.5,3.5),color:'thrust'});
+}
+
+function emitSparks(x,y,col,n){
+  for(let i=0;i<n;i++){let a=rand(0,6.28);
+    particles.push({x,y,vx:Math.cos(a)*rand(1,4),vy:Math.sin(a)*rand(1,4),
+      life:1,decay:rand(0.03,0.06),s:rand(1,3),color:col});
+  }
+}
+
+function emitDelivery(x,y){
+  for(let i=0;i<40;i++){let a=rand(0,6.28),sp=rand(1,5);
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      life:1,decay:rand(0.015,0.03),s:rand(2,5),color:'credit'});
+  }
+}
+
+function emitBeamGrab(x,y){
+  for(let i=0;i<10;i++){
+    let a=rand(0,6.28);
+    particles.push({x,y,vx:Math.cos(a)*rand(0.5,2),vy:Math.sin(a)*rand(0.5,2),
+      life:1,decay:rand(0.04,0.08),s:rand(1,3),color:'beam'});
+  }
+}
+
+function initGame(){
+  credits=0;hp=3;wave=1;waveTimer=0;towing=[];
+  debris=[];asteroids=[];particles=[];
+  initStars();initShip();
+  for(let i=0;i<8;i++)spawnDebris();
+  for(let i=0;i<4;i++)spawnAsteroid();
+}
+
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'){e.preventDefault();handleSpace()}});
+addEventListener('keyup',e=>{keys[e.code]=false});
+addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+addEventListener('mousedown',e=>{handleClick()});
+
+function handleSpace(){
+  if(state==='menu'){state='play';initGame();return}
+  if(state==='over'){state='menu';return}
+}
+
+function handleClick(){
+  if(state==='menu'){state='play';initGame();return}
+  if(state==='over'){state='menu';return}
+  if(state!=='play')return;
+
+  // Update mouse world coords
+  let wx=ship.x-W/2+mouse.x, wy=ship.y-H/2+mouse.y;
+  mouse.world.x=wx; mouse.world.y=wy;
+
+  // Find nearest debris to click point
+  let best=null,bd=GRAB_R*1.2;
+  for(let d of debris){
+    if(towing.includes(d))continue;
+    let dd=dist({x:wx,y:wy},d);
+    if(dd<bd){bd=dd;best=d}
+  }
+
+  if(best && towing.length<MAX_TOW){
+    towing.push(best);
+    emitBeamGrab(best.x,best.y);
+  }
+}
+
+function getTowMass(){
+  return towing.reduce((s,d)=>s+d.mass,0);
+}
+
+let lastT=0;
+function update(dt){
+  if(state!=='play')return;
+  dt=Math.min(dt,0.05);
+
+  let wx=ship.x-W/2+mouse.x, wy=ship.y-H/2+mouse.y;
+  mouse.world.x=wx; mouse.world.y=wy;
+  let targetAngle=Math.atan2(wy-ship.y,wx-ship.x);
+  let diff=targetAngle-ship.angle;
+  while(diff>Math.PI)diff-=6.2832;while(diff<-Math.PI)diff+=6.2832;
+  ship.angle+=diff*ROT_LERP;
+
+  let tx=0,ty=0;
+  let fwdX=Math.cos(ship.angle),fwdY=Math.sin(ship.angle);
+  let strafeX=Math.cos(ship.angle-1.5708),strafeY=Math.sin(ship.angle-1.5708);
+  if(keys['KeyW']||keys['ArrowUp']){tx+=fwdX*THRUST;ty+=fwdY*THRUST}
+  if(keys['KeyS']||keys['ArrowDown']){tx-=fwdX*THRUST*0.5;ty-=fwdY*THRUST*0.5}
+  if(keys['KeyA']||keys['ArrowLeft']){tx+=strafeX*STRAFE_THRUST;ty+=strafeY*STRAFE_THRUST}
+  if(keys['KeyD']||keys['ArrowRight']){tx-=strafeX*STRAFE_THRUST;ty-=strafeY*STRAFE_THRUST}
+
+  ship.thrusting=(tx!==0||ty!==0);
+  let towMass=getTowMass();
+  let spdMult=1/(1+towMass*0.35);
+  ship.vx+=tx*spdMult;ship.vy+=ty*spdMult;
+  ship.vx*=FRICTION;ship.vy*=FRICTION;
+
+  let spd=Math.hypot(ship.vx,ship.vy);
+  let maxSpd=MAX_SPD*spdMult;
+  if(spd>maxSpd){ship.vx*=maxSpd/spd;ship.vy*=maxSpd/spd}
+
+  ship.x+=ship.vx;ship.y+=ship.vy;
+  ship.x=clamp(ship.x,20,WORLD-20);ship.y=clamp(ship.y,20,WORLD-20);
+
+  if(ship.thrusting&&Math.random()<0.6){
+    let pa=Math.atan2(-ty,-tx)+rand(-0.3,0.3);
+    particles.push({
+      x:ship.x-Math.cos(Math.atan2(ty,tx))*SHIP_R*0.6,
+      y:ship.y-Math.sin(Math.atan2(ty,tx))*SHIP_R*0.6,
+      vx:Math.cos(pa)*rand(1,3)+ship.vx*0.2,vy:Math.sin(pa)*rand(1,3)+ship.vy*0.2,
+      life:1,decay:rand(0.02,0.05),s:rand(1.5,3.5),color:'thrust'
+    });
+  }
+
+  // Towed debris follows with drag physics
+  for(let i=0;i<towing.length;i++){
+    let d=towing[i];
+    let dx=ship.x-d.x,dy=ship.y-d.y;
+    let d2=Math.hypot(dx,dy)||1;
+    let target=SHIP_R+d.r+10+i*8;
+    let pull=(d2-target)*0.06;
+    d.vx=lerp(d.vx,ship.vx*0.8,0.1);
+    d.vy=lerp(d.vy,ship.vy*0.8,0.1);
+    d.vx+=dx/d2*pull;
+    d.vy+=dy/d2*pull;
+    d.x+=d.vx;d.y+=d.vy;
+    d.rot+=d.rotSpd*0.5;
+  }
+
+  for(let d of debris){
+    if(towing.includes(d))continue;
+    d.x+=d.vx;d.y+=d.vy;d.rot+=d.rotSpd;d.vx*=0.998;d.vy*=0.998;
+  }
+
+  // Mobile asteroids
+  for(let a of asteroids){
+    if(a.mobile){
+      a.mobileTimer++;
+      if(a.mobileTimer>rand(120,300)){
+        a.mobileTimer=0;
+        // Retarget: drift toward nearest debris or random direction
+        let nearD=null,nd=Infinity;
+        for(let d of debris){
+          let dd=dist(a,d);
+          if(dd<nd){nd=dd;nearD=d}
+        }
+        if(nearD&&nd<800){
+          a.mobileAngle=Math.atan2(nearD.y-a.y,nearD.x-a.x);
+        }else{
+          a.mobileAngle+=rand(-1,1);
+        }
+      }
+      a.vx=lerp(a.vx,Math.cos(a.mobileAngle)*a.mobileSpd,0.02);
+      a.vy=lerp(a.vy,Math.sin(a.mobileAngle)*a.mobileSpd,0.02);
+    }
+    a.x+=a.vx;a.y+=a.vy;a.rot+=a.rotSpd;
+  }
+
+  asteroids=asteroids.filter(a=>a.x>-300&&a.x<WORLD+300&&a.y>-300&&a.y<WORLD+300);
+
+  // Collision: ship vs asteroids
+  for(let a of asteroids){
+    if(dist(ship,a)<SHIP_R+a.r){
+      hp--;
+      shakeMag=12;
+      emitSparks(ship.x,ship.y,'#ff4444',15);
+      let dx=ship.x-a.x,dy=ship.y-a.y,d=Math.hypot(dx,dy)||1;
+      ship.vx+=dx/d*3;ship.vy+=dy/d*3;
+      a.vx-=dx/d*1;a.vy-=dy/d*1;
+      if(hp<=0){state='over';emitSparks(ship.x,ship.y,'#ff8800',40)}
+    }
+  }
+
+  // Collision: towed debris vs asteroids → drop that specific tow
+  towing=towing.filter(d=>{
+    for(let a of asteroids){
+      if(dist(d,a)<d.r+a.r){
+        emitSparks(d.x,d.y,'#ffaa00',10);
+        d.vx+=rand(-2,2);d.vy+=rand(-2,2);
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Delivery
+  let stationDist=dist(ship,{x:WORLD/2,y:WORLD/2});
+  let delivered=[];
+  for(let d of towing){
+    if(dist(d,{x:WORLD/2,y:WORLD/2})<STATION_R+d.r){
+      credits+=d.credits;
+      emitDelivery(d.x,d.y);
+      delivered.push(d);
+    }
+  }
+  if(delivered.length>0){
+    debris=debris.filter(d=>!delivered.includes(d));
+    towing=towing.filter(d=>!delivered.includes(d));
+    let newWave=Math.floor(credits/500)+1;
+    if(newWave>wave){wave=newWave}
+  }
+
+  if(debris.length<5+wave)spawnDebris();
+  let targetAst=3+wave*2;
+  if(asteroids.length<targetAst&&Math.random()<0.02)spawnAsteroid();
+
+  for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;p.vx*=0.97;p.vy*=0.97}
+  particles=particles.filter(p=>p.life>0);
+
+  if(shakeMag>0){shakeX=rand(-shakeMag,shakeMag);shakeY=rand(-shakeMag,shakeMag);shakeMag*=0.85;if(shakeMag<0.5)shakeMag=0}
+  else{shakeX=shakeY=0}
+}
+
+// --- RENDERING ---
+
+function drawShip(cx,cy,t){
+  X.save();X.translate(ship.x-cx,ship.y-cy);X.rotate(ship.angle);
+  X.shadowColor='#00ffff';X.shadowBlur=15;
+  X.beginPath();X.moveTo(SHIP_R,0);X.lineTo(-SHIP_R*0.7,-SHIP_R*0.6);X.lineTo(-SHIP_R*0.3,0);X.lineTo(-SHIP_R*0.7,SHIP_R*0.6);X.closePath();
+  X.fillStyle='#0cf';X.fill();
+  X.strokeStyle='#aff';X.lineWidth=1.5;X.stroke();
+  X.shadowBlur=0;X.restore();
+}
+
+function drawDebris(d,cx,cy){
+  X.save();X.translate(d.x-cx,d.y-cy);X.rotate(d.rot);
+  X.beginPath();
+  for(let i=0;i<d.verts.length;i++){let v=d.verts[i];i===0?X.moveTo(v.x,v.y):X.lineTo(v.x,v.y)}
+  X.closePath();
+  X.fillStyle=d.color;X.globalAlpha=0.85;X.fill();
+  X.strokeStyle='#ffdd88';X.lineWidth=1;X.globalAlpha=1;X.stroke();
+  if(towing.includes(d)){
+    X.strokeStyle='#0ff';X.lineWidth=2;X.setLineDash([4,4]);X.stroke();X.setLineDash([]);
+  }
+  X.restore();
+}
+
+function drawAsteroid(a,cx,cy,t){
+  X.save();X.translate(a.x-cx,a.y-cy);X.rotate(a.rot);
+  X.beginPath();
+  for(let i=0;i<a.verts.length;i++){let v=a.verts[i];i===0?X.moveTo(v.x,v.y):X.lineTo(v.x,v.y)}
+  X.closePath();
+  X.fillStyle=a.color;X.fill();
+  X.strokeStyle='rgba(180,160,140,0.4)';X.lineWidth=1;X.stroke();
+
+  // Mobile asteroid glow
+  if(a.mobile){
+    let pulse=0.15+Math.sin(t*0.004+a.glowPhase)*0.1;
+    X.shadowColor='#ff4422';X.shadowBlur=8;
+    X.strokeStyle=`rgba(255,80,40,${pulse})`;X.lineWidth=2;X.stroke();
+    X.shadowBlur=0;
+  }
+  X.restore();
+}
+
+function drawStation(cx,cy,t){
+  let sx=WORLD/2-cx,sy=WORLD/2-cy;
+
+  // Docking range indicator
+  X.strokeStyle='rgba(60,140,255,0.06)';X.lineWidth=1;X.setLineDash([8,12]);
+  X.beginPath();X.arc(sx,sy,STATION_R*2.5,0,6.2832);X.stroke();X.setLineDash([]);
+
+  // Outer glow
+  let g=X.createRadialGradient(sx,sy,STATION_R*0.3,sx,sy,STATION_R*2);
+  g.addColorStop(0,'rgba(60,140,255,0.12)');g.addColorStop(0.5,'rgba(40,100,200,0.04)');g.addColorStop(1,'rgba(60,140,255,0)');
+  X.fillStyle=g;X.beginPath();X.arc(sx,sy,STATION_R*2,0,6.2832);X.fill();
+
+  // Station body — hexagonal structure
+  let pulse=1+Math.sin(t*0.002)*0.03;
+  X.save();X.translate(sx,sy);X.rotate(t*0.0003);
+
+  // Outer hull ring
+  X.beginPath();
+  for(let i=0;i<6;i++){
+    let a=Math.PI*2/6*i-Math.PI/6;
+    let r=STATION_R*pulse;
+    i===0?X.moveTo(Math.cos(a)*r,Math.sin(a)*r):X.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  X.closePath();
+  X.fillStyle='rgba(30,50,80,0.6)';X.fill();
+  X.strokeStyle=`rgba(80,160,255,${0.4+Math.sin(t*0.003)*0.15})`;X.lineWidth=2.5;X.stroke();
+
+  // Inner structure ring
+  X.beginPath();
+  for(let i=0;i<6;i++){
+    let a=Math.PI*2/6*i-Math.PI/6;
+    let r=STATION_R*0.55*pulse;
+    i===0?X.moveTo(Math.cos(a)*r,Math.sin(a)*r):X.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  X.closePath();
+  X.strokeStyle='rgba(100,180,255,0.25)';X.lineWidth=1.5;X.stroke();
+
+  // Cross-braces
+  for(let i=0;i<3;i++){
+    let a=Math.PI*2/3*i;
+    X.strokeStyle='rgba(80,150,240,0.15)';X.lineWidth=1;
+    X.beginPath();X.moveTo(Math.cos(a)*STATION_R*0.55*pulse,Math.sin(a)*STATION_R*0.55*pulse);
+    X.lineTo(Math.cos(a+Math.PI)*STATION_R*0.55*pulse,Math.sin(a+Math.PI)*STATION_R*0.55*pulse);
+    X.stroke();
+  }
+
+  // Docking lights (4 around perimeter)
+  for(let i=0;i<4;i++){
+    let a=Math.PI*2/4*i+t*0.001;
+    let lx=Math.cos(a)*STATION_R*0.85*pulse, ly=Math.sin(a)*STATION_R*0.85*pulse;
+    let blink=Math.sin(t*0.008+i*1.5)>0?0.8:0.2;
+    X.fillStyle=`rgba(100,200,255,${blink})`;
+    X.beginPath();X.arc(lx,ly,2.5,0,6.2832);X.fill();
+  }
+
+  // Core
+  let coreGlow=X.createRadialGradient(0,0,0,0,0,8);
+  coreGlow.addColorStop(0,'rgba(180,220,255,0.8)');coreGlow.addColorStop(1,'rgba(60,140,255,0)');
+  X.fillStyle=coreGlow;X.beginPath();X.arc(0,0,8,0,6.2832);X.fill();
+  X.fillStyle='rgba(200,230,255,0.9)';X.beginPath();X.arc(0,0,3,0,6.2832);X.fill();
+
+  // Solar panels (2 rectangles extending out)
+  X.rotate(-t*0.0006); // counter-rotate for panels
+  for(let side of[-1,1]){
+    X.fillStyle='rgba(40,60,100,0.5)';
+    X.fillRect(side*STATION_R*0.7,-4,side*STATION_R*0.5,8);
+    X.strokeStyle='rgba(80,140,220,0.3)';X.lineWidth=0.5;
+    X.strokeRect(side*STATION_R*0.7,-4,side*STATION_R*0.5,8);
+    // Panel lines
+    for(let j=1;j<4;j++){
+      X.beginPath();X.moveTo(side*STATION_R*0.7+side*j*STATION_R*0.125,-4);
+      X.lineTo(side*STATION_R*0.7+side*j*STATION_R*0.125,4);X.stroke();
+    }
+  }
+
+  X.restore();
+}
+
+function drawGrabHint(cx,cy,t){
+  if(towing.length>=MAX_TOW)return;
+  for(let d of debris){
+    if(towing.includes(d))continue;
+    let dd=dist(ship,d);
+    if(dd<GRAB_R){
+      let sx=d.x-cx,sy=d.y-cy;
+      X.strokeStyle=`rgba(0,255,255,${0.3+Math.sin(t*0.005)*0.2})`;
+      X.lineWidth=1;X.setLineDash([3,5]);
+      X.beginPath();X.arc(sx,sy,d.r+8,0,6.2832);X.stroke();X.setLineDash([]);
+    }
+  }
+}
+
+function drawTowLines(cx,cy,t){
+  for(let i=0;i<towing.length;i++){
+    let d=towing[i];
+    let alpha=0.3+Math.sin(t*0.006+i)*0.15;
+    X.strokeStyle=`rgba(0,255,255,${alpha})`;X.lineWidth=1.5;X.setLineDash([4,6]);
+    X.beginPath();X.moveTo(ship.x-cx,ship.y-cy);X.lineTo(d.x-cx,d.y-cy);X.stroke();X.setLineDash([]);
+  }
+}
+
+function drawHUD(t){
+  X.fillStyle='#ffd700';X.font='bold 20px monospace';X.textAlign='left';
+  X.fillText('⬡ '+credits+' CR',20,35);
+  X.fillStyle='#88aacc';X.font='14px monospace';
+  X.fillText('WAVE '+wave,20,58);
+
+  // HP
+  X.textAlign='right';
+  for(let i=0;i<3;i++){
+    X.fillStyle=i<hp?'#ff4466':'#331122';
+    X.fillRect(W-40-i*28,18,22,14);
+  }
+  X.fillStyle='#ff6688';X.font='12px monospace';X.fillText('HULL',W-20,46);
+
+  // Tow indicator
+  X.textAlign='center';
+  if(towing.length>0){
+    let totalMass=getTowMass();
+    let totalCredits=towing.reduce((s,d)=>s+d.credits,0);
+    let slowPct=Math.round((1-1/(1+totalMass*0.35))*100);
+    X.fillStyle='#0ff';X.font='13px monospace';
+    X.fillText(`TOWING ${towing.length}/${MAX_TOW} — ${totalCredits} CR — SPEED -${slowPct}%`,W/2,H-55);
+    // Drop hint
+    X.fillStyle='rgba(150,200,220,0.35)';X.font='11px monospace';
+    X.fillText('Bump debris to drop  •  Reach station to deliver',W/2,H-35);
+  }else{
+    X.fillStyle='rgba(150,200,220,0.4)';X.font='12px monospace';
+    X.fillText('Click debris to grapple  •  Tow to station  •  Avoid asteroids',W/2,H-30);
+  }
+
+  // Minimap
+  let mm=100,mmx=W-mm-15,mmy=H-mm-15;
+  X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(mmx,mmy,mm,mm);
+  X.strokeStyle='rgba(80,80,100,0.5)';X.lineWidth=1;X.strokeRect(mmx,mmy,mm,mm);
+  X.fillStyle='#4488ff';X.fillRect(mmx+mm/2-2,mmy+mm/2-2,4,4);
+  X.fillStyle='#e8922a';
+  for(let d of debris){X.fillRect(mmx+d.x/WORLD*mm-1,mmy+d.y/WORLD*mm-1,2,2)}
+  X.fillStyle='#665544';
+  for(let a of asteroids){X.fillRect(mmx+a.x/WORLD*mm-1,mmy+a.y/WORLD*mm-1,2,2)}
+  X.fillStyle='#0ff';X.fillRect(mmx+ship.x/WORLD*mm-2,mmy+ship.y/WORLD*mm-2,4,4);
+}
+
+function render(t){
+  X.fillStyle='#05060d';X.fillRect(0,0,W,H);
+  let cx=ship.x-W/2+shakeX,cy=ship.y-H/2+shakeY;
+
+  // Stars
+  for(let s of stars){
+    let sx=(s.x-cx*s.p)%W,sy=(s.y-cy*s.p)%H;
+    if(sx<0)sx+=W;if(sy<0)sy+=H;
+    X.fillStyle=`rgba(200,210,255,${s.b*(0.5+Math.sin(t*0.001+s.x)*0.3)})`;
+    X.beginPath();X.arc(sx,sy,s.s,0,6.2832);X.fill();
+  }
+
+  drawStation(cx,cy,t);
+  for(let d of debris)drawDebris(d,cx,cy);
+  for(let a of asteroids)drawAsteroid(a,cx,cy,t);
+  drawTowLines(cx,cy,t);
+  drawGrabHint(cx,cy,t);
+  if(state==='play')drawShip(cx,cy,t);
+
+  // Particles
+  for(let p of particles){
+    let c=p.color==='thrust'?`rgba(0,200,255,${p.life})`:
+          p.color==='credit'?`rgba(255,215,0,${p.life})`:
+          p.color==='beam'?`rgba(0,255,255,${p.life*0.7})`:
+          `rgba(${p.color==='#ff4444'?'255,60,60':'255,170,0'},${p.life})`;
+    X.fillStyle=c;X.beginPath();X.arc(p.x-cx,p.y-cy,p.s*p.life,0,6.2832);X.fill();
+  }
+
+  if(state==='play')drawHUD(t);
+
+  if(state==='menu'){
+    X.fillStyle='rgba(5,6,13,0.7)';X.fillRect(0,0,W,H);
+    X.textAlign='center';
+    X.fillStyle='#0cf';X.font='bold 52px monospace';
+    X.fillText('SALVAGE DRIFT',W/2,H/2-60);
+    X.fillStyle='#88aacc';X.font='18px monospace';
+    X.fillText('Tow debris to your station. Avoid asteroids.',W/2,H/2-10);
+    X.fillStyle=`rgba(0,255,255,${0.5+Math.sin(t*0.004)*0.3})`;X.font='20px monospace';
+    X.fillText('Click or press SPACE to start',W/2,H/2+50);
+    X.fillStyle='#556677';X.font='14px monospace';
+    X.fillText('WASD = thrust  •  Mouse = aim  •  Click = grapple debris',W/2,H/2+90);
+  }
+
+  if(state==='over'){
+    X.fillStyle='rgba(5,6,13,0.75)';X.fillRect(0,0,W,H);
+    X.textAlign='center';
+    X.fillStyle='#ff4466';X.font='bold 42px monospace';
+    X.fillText('SHIP DESTROYED',W/2,H/2-50);
+    X.fillStyle='#ffd700';X.font='24px monospace';
+    X.fillText(credits+' CREDITS  •  WAVE '+wave,W/2,H/2+10);
+    X.fillStyle=`rgba(200,200,220,${0.5+Math.sin(t*0.004)*0.3})`;X.font='18px monospace';
+    X.fillText('Click or press SPACE to continue',W/2,H/2+60);
+  }
+}
+
+function loop(t){
+  let dt=(t-lastT)/1000;lastT=t;
+  if(dt>0.2)dt=0.016;
+  update(dt);render(t);
+  requestAnimationFrame(loop);
+}
+initStars();initShip();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
