@@ -9,27 +9,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Page-specific overrides */
         body { overflow-x: hidden; }
         .container { max-width: 900px; }
 
-        /* Header */
-        .page-header {
-            padding: 80px 0 40px;
-            border-bottom: 1px solid var(--border);
-        }
+        .page-header { padding: 80px 0 40px; border-bottom: 1px solid var(--border); }
         .page-header h1 { font-size: 2rem; margin-bottom: 8px; }
         .page-header h1 span { color: var(--fox); }
         .page-header .subtitle { font-size: 0.95rem; color: var(--text-dim); font-weight: 300; max-width: 560px; }
         .page-header .back { margin-top: 16px; }
 
-        /* Timeline area */
-        .timeline-area {
-            padding: 60px 0 40px;
-            position: relative;
-        }
+        .timeline-area { padding: 60px 0 40px; position: relative; }
 
-        /* The main timeline line */
         .timeline-line {
             position: relative;
             height: 4px;
@@ -38,21 +28,6 @@
             margin: 40px 0 60px;
         }
 
-        .timeline-line::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent) 0%, var(--fox) 100%);
-            border-radius: 2px;
-            width: 0;
-            transition: width 1.5s ease-out;
-        }
-
-        .timeline-line.active::before { width: 100%; }
-
-        /* Inflection points on the line */
         .inflection-point {
             position: absolute;
             top: 50%;
@@ -79,6 +54,25 @@
             box-shadow: 0 0 16px rgba(201, 150, 120, 0.5);
         }
 
+        .inflection-point.diverged {
+            background: var(--fox);
+            border-color: var(--fox);
+            opacity: 0.7;
+        }
+
+        .inflection-point.diverged:hover { opacity: 1; }
+
+        .year-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.68rem;
+            color: var(--text-dimmer);
+            font-family: 'JetBrains Mono', monospace;
+            pointer-events: none;
+        }
+
         .inflection-label {
             position: absolute;
             top: 28px;
@@ -93,20 +87,29 @@
         }
 
         .inflection-point:hover .inflection-label,
-        .inflection-point.active .inflection-label {
-            color: var(--text);
+        .inflection-point.active .inflection-label { color: var(--text); }
+
+        /* State bar */
+        .state-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            min-height: 28px;
         }
 
-        .year-label {
-            position: absolute;
-            top: -24px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.68rem;
-            color: var(--text-dimmer);
+        .state-tag {
             font-family: 'JetBrains Mono', monospace;
-            pointer-events: none;
+            font-size: 0.72rem;
+            padding: 4px 10px;
+            border-radius: 3px;
+            background: rgba(224, 122, 58, 0.1);
+            color: var(--fox);
+            border: 1px solid rgba(224, 122, 58, 0.2);
+            animation: fadeIn 0.4s ease-out;
         }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Consequence panel */
         .consequence-panel {
@@ -120,38 +123,13 @@
             transition: all 0.5s;
         }
 
-        .consequence-panel.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .consequence-panel h2 {
-            font-size: 1.4rem;
-            margin-bottom: 4px;
-        }
-
+        .consequence-panel.visible { opacity: 1; transform: translateY(0); }
+        .consequence-panel h2 { font-size: 1.3rem; margin-bottom: 4px; }
         .consequence-panel h2 span { color: var(--accent); }
+        .consequence-panel .year { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-dimmer); margin-bottom: 16px; }
+        .consequence-panel .description { font-size: 0.95rem; color: var(--text-dim); line-height: 1.7; margin-bottom: 20px; }
 
-        .consequence-panel .year {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-dimmer);
-            margin-bottom: 16px;
-        }
-
-        .consequence-panel .description {
-            font-size: 0.95rem;
-            color: var(--text-dim);
-            line-height: 1.7;
-            margin-bottom: 20px;
-        }
-
-        /* Cascade tree */
-        .cascade {
-            padding-left: 0;
-            list-style: none;
-        }
-
+        .cascade { padding-left: 0; list-style: none; }
         .cascade-item {
             padding: 12px 16px;
             border-left: 2px solid var(--border);
@@ -160,55 +138,33 @@
             transform: translateX(-10px);
             transition: all 0.4s ease-out;
         }
-
-        .cascade-item.visible {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
+        .cascade-item.visible { opacity: 1; transform: translateX(0); }
         .cascade-item.positive { border-left-color: var(--green); }
         .cascade-item.negative { border-left-color: var(--fox); }
         .cascade-item.neutral { border-left-color: var(--accent); }
+        .cascade-item.rare { border-left-color: #b68ee0; }
+        .cascade-item .effect-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; }
+        .cascade-item .effect-desc { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+        .cascade-item .effect-rarity { font-size: 0.65rem; color: #b68ee0; font-family: 'JetBrains Mono', monospace; margin-left: 8px; font-weight: 500; }
 
-        .cascade-item .effect-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .cascade-item .effect-desc {
-            font-size: 0.82rem;
-            color: var(--text-dim);
-            line-height: 1.5;
-        }
-
-        /* Instruction */
-        .instruction {
-            text-align: center;
-            padding: 30px 0;
-            font-size: 0.9rem;
-            color: var(--text-dimmer);
-            font-style: italic;
-        }
-
+        .instruction { text-align: center; padding: 30px 0; font-size: 0.9rem; color: var(--text-dimmer); font-style: italic; }
         .instruction.hidden { display: none; }
 
-        /* Prompt */
-        .prompt-text {
-            margin-top: 60px;
-            padding: 20px 0;
-            border-top: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .prompt-text p {
-            font-size: 0.85rem;
-            color: var(--text-dimmer);
-        }
-
+        .prompt-text { margin-top: 60px; padding: 20px 0; border-top: 1px solid var(--border); text-align: center; }
+        .prompt-text p { font-size: 0.85rem; color: var(--text-dimmer); }
         .prompt-text a { font-weight: 500; }
 
-        /* Footer */
+        .reroll {
+            display: inline-block;
+            margin-top: 16px;
+            font-size: 0.8rem;
+            color: var(--text-dimmer);
+            cursor: pointer;
+            transition: color 0.2s;
+            user-select: none;
+        }
+        .reroll:hover { color: var(--accent); }
+
         footer { padding: 40px 0 80px; text-align: center; }
         footer p { font-size: 0.8rem; color: var(--text-dimmer); }
 
@@ -224,25 +180,27 @@
     <div class="container">
         <header class="page-header">
             <h1><span class="fox-float">🦊</span> <span>Timeline Divergence</span></h1>
-            <p class="subtitle">What if history went differently? Click an inflection point and watch consequences cascade through the centuries.</p>
+            <p class="subtitle">What if history went differently? Each click generates a unique cascade. Diverge multiple points and watch the world reshape.</p>
             <a href="index.html" class="back-link">← Alexander's page</a>
         </header>
 
         <section class="timeline-area">
             <p class="instruction" id="instruction">Click a point on the timeline to diverge history</p>
 
+            <div class="state-bar" id="state-bar"></div>
+
             <div class="timeline-line" id="timeline"></div>
 
             <div class="consequence-panel" id="panel">
                 <h2 id="panel-title"></h2>
-                <p class="year" id="panel-year"></p>
                 <p class="description" id="panel-desc"></p>
+                <span class="reroll" id="reroll">↻ Reroll this divergence</span>
                 <ul class="cascade" id="cascade"></ul>
             </div>
         </section>
 
         <div class="prompt-text">
-            <p>This is a simplified demo of the <a href="https://github.com/elliefox-ai/ellie-skunkworks">Divergence Engine</a>. The full version simulates 54+ inflection points with cascading consequences, alternate geography, and emergent timelines.</p>
+            <p>This is an interactive demo of the <a href="https://github.com/elliefox-ai/ellie-skunkworks">Divergence Engine</a>. Every click generates unique consequences. No two sessions are the same.</p>
         </div>
 
         <footer>
@@ -251,117 +209,320 @@
     </div>
 
     <script>
-        // Inflection point data
+        // ─── Helper: seeded-ish random from state ───
+        function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function chance(pct) { return Math.random() < pct; }
+        function pickN(arr, n) {
+            const shuffled = [...arr].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, n);
+        }
+
+        // ─── World state ───
+        const diverged = new Set();
+        const worldState = {};
+
+        // ─── Inflection point data ───
         const points = [
             {
+                id: 'agriculture',
                 year: '8000 BC',
                 pos: 5,
                 title: 'Agriculture Emerges',
-                desc: 'Different crops. Different animals. Different population densities. The deepest divergence — everything downstream shifts when the foundations of civilization change.',
-                effects: [
-                    { type: 'positive', title: 'Alternative Staple Crops', desc: 'Potato and maize-based agriculture in the north instead of wheat. Higher caloric yields support denser populations earlier.' },
-                    { type: 'neutral', title: 'Different Domesticated Animals', desc: 'Aurochs never domesticated. Elk and moose become the primary beasts of burden in northern climates.' },
-                    { type: 'negative', title: 'Disease Profile Shifts', desc: 'Without zoonotic diseases from cattle and pigs, population immunity develops differently. Later contact between hemispheres becomes catastrophic.' },
-                    { type: 'positive', title: 'Settlement Patterns Change', desc: 'Less grain storage needed means fewer centralized authorities. Power stays distributed longer.' },
-                ]
+                desc: 'Different crops. Different animals. Different population densities.',
+                generate() {
+                    const crops = pick([
+                        ['potato and maize', 'northern', 'higher caloric yields, denser populations earlier'],
+                        ['rice and millet', 'river valley', 'intense irrigation, centralized water control'],
+                        ['amaranth and chia', 'highland', 'drought-resistant, decentralized settlements'],
+                    ]);
+                    const animals = pick([
+                        'Aurochs never domesticated. Elk become northern beasts of burden.',
+                        'Horses domesticated earlier. Pastoral nomadism dominates for another millennium.',
+                        'No large domesticated animals. Human labor and simple machines drive everything.',
+                    ]);
+                    const disease = pick([
+                        'Without zoonotic diseases from cattle, later intercontinental contact is devastating.',
+                        'New zoonotic crossover from alternative livestock creates novel disease profiles.',
+                        'Isolated populations develop stronger innate immunity through different dietary pressures.',
+                    ]);
+                    return {
+                        desc: `${crops[0]} become the ${crops[1]} staples — ${crops[2]}.`,
+                        effects: [
+                            { type: 'positive', title: `Alternative Staple: ${crops[0]}`, desc: crops[2] },
+                            { type: pick(['neutral','negative']), title: 'Different Domestication', desc: animals },
+                            { type: 'negative', title: 'Disease Profile Shifts', desc: disease },
+                            ... chance(0.3) ? [{ type: 'rare', title: 'Unexpected Consequence', desc: pick([
+                                'Agricultural surplus enables a priestly caste 2000 years earlier than expected.',
+                                'Fermentation techniques from alternative grains produce psychoactive beverages that shape early religion.',
+                                'Terrace farming spreads vertical settlement patterns—cities grow upward, not outward.',
+                            ])}] : [],
+                        ],
+                        stateTag: `${crops[0]} agriculture`
+                    };
+                }
             },
             {
+                id: 'rome',
                 year: '476 AD',
                 pos: 22,
                 title: 'Rome Endures',
-                desc: 'What if the Western Roman Empire adapted instead of collapsed? Not eternal glory — just institutional survival. Bureaucracy outlasting barbarians.',
-                effects: [
-                    { type: 'neutral', title: 'Institutional Continuity', desc: 'Roman law, engineering, and administration persist. The "Dark Ages" never happen — but stagnation might be worse than collapse.' },
-                    { type: 'negative', title: 'Technological Inertia', desc: 'Roman engineering freezes around aqueducts and roads. No pressure to innovate beyond existing solutions.' },
-                    { type: 'positive', title: 'Linguistic Unity', desc: 'Vulgar Latin evolves into a unified Romance language instead of fragmenting. Half of Europe shares a common tongue.' },
-                    { type: 'neutral', title: 'Delayed Nation-States', desc: 'Without Rome\'s collapse, the feudal system never emerges. No medieval kingdoms means no modern nation-states — at least not as we know them.' },
-                ]
+                desc: 'The Western Empire adapts instead of collapsing.',
+                generate() {
+                    const path = pick([
+                        ['bureaucratic survival', 'Roman law persists. Engineering freezes around aqueducts. The "Dark Ages" never happen—but stagnation replaces collapse.', 'Bureaucratic Rome'],
+                        ['military reconquest', 'Rome militarizes further. A garrison state stretches across Europe. Freedom contracts; stability purchases.', 'Garrison Rome'],
+                        ['federal reorganization', 'Rome restructures as a federation of semi-autonomous provinces. Decentralized but continuous.', 'Federal Rome'],
+                    ]);
+                    const lang = pick([
+                        ['Vulgar Latin unifies into a single Romance language across half of Europe.', 'Linguistic Unity'],
+                        ['Greek replaces Latin as the administrative language. The Western Empire goes Hellenic.', 'Hellenic Shift'],
+                        ['Regional dialects harden into separate languages despite imperial continuity.', 'Fragmented Latin'],
+                    ]);
+                    const tech = pick([
+                        'Roman engineering freezes. No pressure to innovate beyond existing solutions.',
+                        'Sustained peace allows incremental refinement. Roads and plumbing get better; nothing revolutionary.',
+                        'Bureaucratic competition between provinces creates localized innovation hotspots.',
+                    ]);
+                    return {
+                        desc: path[1],
+                        effects: [
+                            { type: 'neutral', title: path[2], desc: path[1] },
+                            { type: pick(['positive','negative']), title: lang[1], desc: lang[0] },
+                            { type: pick(['positive','negative']), title: 'Technological Trajectory', desc: tech },
+                            ... diverged.has('agriculture') ? [{ type: 'neutral', title: 'Echo of Earlier Divergence', desc: 'Agricultural patterns shape which Roman provinces thrive and which stagnate.' }] : [],
+                            ... chance(0.25) ? [{ type: 'rare', title: 'Rare Outcome', desc: pick([
+                                'A Roman industrial revolution begins in Gaul, powered by water wheels and organized engineering guilds.',
+                                'The Senate evolves into a bicameral legislature. Representative democracy emerges by 800 AD.',
+                                'Roman contact with China establishes a silk-and-steel trade route that transforms both empires.',
+                            ])}] : [],
+                        ],
+                        stateTag: path[2]
+                    };
+                }
             },
             {
+                id: 'vinland',
                 year: '1000 AD',
                 pos: 38,
                 title: 'Norse Vinland Holds',
-                desc: 'Leif Erikson\'s settlement doesn\'t fail. Norse colonists dig in along the Newfoundland coast. Five centuries before Columbus, a different New World begins.',
-                effects: [
-                    { type: 'positive', title: 'Norse North America', desc: 'By 1200, a string of settlements stretches from Markland to Vinland. Trade routes connect to Greenland and Iceland.' },
-                    { type: 'neutral', title: 'Disease Exchange Begins Early', desc: 'European diseases reach the Americas centuries earlier — but slowly, through small contact. Populations adapt rather than collapse.' },
-                    { type: 'positive', title: 'Indigenous Alliances', desc: 'Norse settlers ally with Mi\'kmaq and Beothuk. Hybrid culture emerges — Norse longhouses meet birchbark canoes.' },
-                    { type: 'negative', title: 'Columbus Never Sails', desc: 'No Spanish conquest. No triangular trade. The colonial era as we know it simply doesn\'t happen.' },
-                ]
+                desc: 'Leif Erikson\'s settlement doesn\'t fail.',
+                generate() {
+                    const scale = pick([
+                        'A string of settlements from Markland to Vinland by 1200.',
+                        'A single thriving colony in Newfoundland, growing slowly.',
+                        'Coastal outposts connected by maritime trade routes.',
+                    ]);
+                    const indigenous = pick([
+                        'Norse ally with Mi\'kmaq. Hybrid culture emerges—longhouses meet birchbark canoes.',
+                        'Conflict with Beothuk. Norse retreat to coastal enclaves.',
+                        'Trade-only contact. Cultural exchange without settlement overlap.',
+                    ]);
+                    const disease = pick([
+                        'European diseases reach the Americas centuries early—but slowly. Populations adapt.',
+                        'Initial contact causes localized epidemics. Survivors develop partial immunity before later waves.',
+                        'Disease exchange is minimal. Norse populations too small to be effective vectors.',
+                    ]);
+                    return {
+                        desc: `Five centuries before Columbus, a different New World begins. ${scale}`,
+                        effects: [
+                            { type: 'positive', title: 'Norse North America', desc: scale },
+                            { type: pick(['positive','negative']), title: 'Indigenous Contact', desc: indigenous },
+                            { type: pick(['neutral','negative']), title: 'Disease Exchange', desc: disease },
+                            ... diverged.has('rome') ? [{ type: 'neutral', title: 'Roman Echo', desc: 'A surviving Rome means Norse expansion is contested—different political dynamics in the North Atlantic.' }] : [],
+                            ... chance(0.35) ? [{ type: 'rare', title: 'Emergent Phenomenon', desc: pick([
+                                'Norse-influenced Iroquois confederacy forms 300 years early.',
+                                'A shared Norse-Algonquin pidgin becomes the lingua franca of the Atlantic coast.',
+                                'Ironworking spreads through indigenous trade networks, reaching the Mississippi by 1400.',
+                            ])}] : [],
+                        ],
+                        stateTag: 'Norse Vinland'
+                    };
+                }
             },
             {
+                id: 'constantinople',
                 year: '1453',
                 pos: 50,
                 title: 'Constantinople Holds',
-                desc: 'The walls don\'t fall. Byzantine diplomats buy another century. Ottoman expansion stalls. The Renaissance takes a different shape when Greek scholars stay home.',
-                effects: [
-                    { type: 'neutral', title: 'Renaissance Redirected', desc: 'Greek learning reaches the West through trade, not exile. Slower transmission, but less disruption to Byzantine intellectual life.' },
-                    { type: 'negative', title: 'Ottoman Stagnation', desc: 'Without Constantinople as a symbol, Ottoman legitimacy wanes. Islam still spreads — but through trade, not conquest.' },
-                    { type: 'positive', title: 'Alternative Trade Routes', desc: 'Byzantine-controlled Bosphorus means European powers seek other paths east. Atlantic exploration accelerates for commercial reasons.' },
-                    { type: 'neutral', title: 'Orthodox Christianity Persists', desc: 'The Eastern Church remains a political force. Russian identity develops without the "Third Rome" narrative.' },
-                ]
+                desc: 'The walls don\'t fall.',
+                generate() {
+                    const renaissance = pick([
+                        'Greek learning reaches the West through trade, not exile. Slower but less disruptive.',
+                        'Byzantine scholars establish satellite academies in Italy. Renaissance is collaborative, not refugee-driven.',
+                        'The Renaissance is delayed. Without fleeing scholars, Western Europe stays medieval longer.',
+                    ]);
+                    const ottoman = pick([
+                        'Ottoman expansion stalls. Islam spreads through trade routes instead.',
+                        'The Ottomans pivot east. Persia and Central Asia bear the brunt.',
+                        'Internal succession crisis fractures the Ottoman project for a generation.',
+                    ]);
+                    return {
+                        desc: 'Byzantine diplomats buy another century. The Renaissance takes a different shape when Greek scholars stay home.',
+                        effects: [
+                            { type: 'neutral', title: 'Renaissance Redirected', desc: renaissance },
+                            { type: pick(['negative','neutral']), title: 'Ottoman Stagnation', desc: ottoman },
+                            { type: 'positive', title: 'Trade Route Shift', desc: 'Byzantine-controlled Bosphorus pushes European powers toward Atlantic exploration earlier.' },
+                            ... diverged.has('vinland') ? [{ type: 'neutral', title: 'Vinland Connection', desc: 'Norse knowledge of the Atlantic reaches Constantinople. Byzantine interest in western routes grows.' }] : [],
+                            ... chance(0.2) ? [{ type: 'rare', title: 'Rare Outcome', desc: pick([
+                                'Byzantine alchemists discover gunpowder independently. The Ottoman siege fails spectacularly.',
+                                'The Paleologus dynasty establishes a constitutional monarchy—the first in European history.',
+                                'A Byzantine-Venetian merger creates a Mediterranean superpower that reshapes the balance of continents.',
+                            ])}] : [],
+                        ],
+                        stateTag: 'Byzantium Survives'
+                    };
+                }
             },
             {
+                id: 'capitalism',
                 year: '1602',
                 pos: 62,
                 title: 'Capitalism Diverges',
-                desc: 'The Dutch East India Company never forms. Joint-stock companies don\'t emerge. Capital accumulation takes a different path — slower, more distributed, less extractive.',
-                effects: [
-                    { type: 'positive', title: 'Slower Colonialism', desc: 'Without corporate-backed expansion, colonial ventures are state-run and smaller scale. Less extractive, but also less funded.' },
-                    { type: 'negative', title: 'Technological Investment Drops', desc: 'No speculative capital means fewer large-scale engineering projects. Industrialization delays by decades.' },
-                    { type: 'neutral', title: 'Cooperative Models Emerge', desc: 'Guild-based economies evolve into cooperative structures instead of corporate ones. Profit exists, but ownership looks different.' },
-                    { type: 'positive', title: 'Wealth Distribution', desc: 'Without the joint-stock model concentrating wealth, economic power stays more distributed. Fewer empires, more city-states.' },
-                ]
+                desc: 'Joint-stock companies never emerge.',
+                generate() {
+                    const economy = pick([
+                        ['Guild-Based Cooperatives', 'Guild structures evolve into cooperative enterprises. Profit exists, but ownership is collective.', 'positive'],
+                        ['State Monopolies', 'Crown-controlled trading houses replace private enterprise. Slower but more regulated expansion.', 'neutral'],
+                        ['Temple Economies', 'Religious institutions become the primary capital accumulators. Science and commerce intertwine.', 'neutral'],
+                    ]);
+                    const colonial = pick([
+                        'Colonial ventures are smaller, state-run. Less extractive—but also less ambitious.',
+                        'Without corporate backing, colonialism stalls. Contact happens through missionaries and explorers instead.',
+                        'Indigenous trade networks absorb European contact on more equal terms.',
+                    ]);
+                    return {
+                        desc: 'The Dutch East India Company never forms. Capital accumulation takes a different path—slower, more distributed.',
+                        effects: [
+                            { type: economy[2], title: economy[0], desc: economy[1] },
+                            { type: pick(['positive','neutral']), title: 'Colonial Impact', desc: colonial },
+                            { type: 'positive', title: 'Wealth Distribution', desc: 'Without the joint-stock model concentrating wealth, economic power stays more distributed.' },
+                            ... diverged.has('constantinople') ? [{ type: 'neutral', title: 'Byzantine Trade Routes', desc: 'Mediterranean trade is still Byzantine-influenced. Atlantic capitalism never dominates.' }] : [],
+                            ... chance(0.3) ? [{ type: 'rare', title: 'Emergent System', desc: pick([
+                                'Worker-owned shipyards in Amsterdam develop the first labor-managed industrial processes.',
+                                'A pan-European credit union system emerges from monastic banking traditions.',
+                                'Artisan collectives patent their techniques, creating an early open-source economy.',
+                            ])}] : [],
+                        ],
+                        stateTag: economy[0]
+                    };
+                }
             },
             {
+                id: 'flight',
                 year: '1903',
                 pos: 75,
                 title: 'Flight Delays',
-                desc: 'The Wright brothers don\'t crack it. Heavier-than-air flight takes another 30 years. Without flight, the World Wars look unrecognizable.',
-                effects: [
-                    { type: 'negative', title: 'No Aerial Warfare', desc: 'World War I is shorter and less devastating without planes. But trench warfare lasts longer without air reconnaissance.' },
-                    { type: 'neutral', title: 'Naval Dominance Extended', desc: 'Battleships remain supreme for three more decades. Naval powers (Britain, Japan) hold influence longer.' },
-                    { type: 'positive', title: 'Delayed Globalism', desc: 'Without air travel, cultural exchange happens slower. Local traditions persist. Global homogenization stalls.' },
-                    { type: 'neutral', title: 'Spaceflight Pushed Back', desc: 'No rockets from WW2, no space race by the 1960s. The moon landing happens in 2003 instead of 1969.' },
-                ]
+                desc: 'Heavier-than-air flight takes another 30 years.',
+                generate() {
+                    const war = pick([
+                        'World War I is shorter. Without aerial recon, trench warfare is even more static—but less deadly.',
+                        'The war drags on. Without air power to break stalemates, the western front calcifies for a decade.',
+                        'Without the psychological impact of bombing, total war doctrine develops differently.',
+                    ]);
+                    const naval = pick([
+                        'Battleships remain supreme. Naval powers hold global influence longer.',
+                        'Submarine warfare advances faster as the only way to project power from below.',
+                        'Without air threat, naval architecture focuses on speed over armor.',
+                    ]);
+                    return {
+                        desc: 'The Wright brothers don\'t crack it. Without flight, the 20th century\'s wars and globalism look unrecognizable.',
+                        effects: [
+                            { type: pick(['positive','negative']), title: 'Different Great War', desc: war },
+                            { type: 'neutral', title: 'Extended Naval Era', desc: naval },
+                            { type: 'positive', title: 'Delayed Globalism', desc: 'Without air travel, cultural exchange is slower. Local traditions persist longer.' },
+                            ... diverged.has('capitalism') ? [{ type: 'neutral', title: 'Economic Echo', desc: 'Without flight, the cooperative/guild economies stay local. Global markets emerge through shipping instead.' }] : [],
+                            ... chance(0.2) ? [{ type: 'rare', title: 'Rare Consequence', desc: pick([
+                                'Zeppelin technology advances instead. Floating cities become the architectural dream of the 1950s.',
+                                'A Hungarian physicist discovers lift through electromagnetic means. Flight arrives via a completely different physics.',
+                                'The moon landing happens in 2003—but via a massive international railgun project.',
+                            ])}] : [],
+                        ],
+                        stateTag: 'No Flight Era'
+                    };
+                }
             },
             {
+                id: 'nuclear',
                 year: '1938',
                 pos: 86,
                 title: 'Nuclear Physics Stalls',
-                desc: 'Fission is discovered a decade later. No Manhattan Project in WW2. The war ends differently — and the Cold War never has its existential terror.',
-                effects: [
-                    { type: 'positive', title: 'No Nuclear Deterrence', desc: 'Without mutually assured destruction, the Cold War stays conventional. More proxy wars, but no species-level threat.' },
-                    { type: 'negative', title: 'Prolonged Pacific War', desc: 'Without the atomic bomb, Japan is invaded conventionally. Millions more die on both sides.' },
-                    { type: 'neutral', title: 'Civilian Nuclear Power Delays', desc: 'Nuclear energy doesn\'t arrive until the 1980s. Coal and oil dominate longer — climate change accelerates in different ways.' },
-                    { type: 'positive', title: 'Different Scientific Culture', desc: 'Without the shadow of the bomb, physics isn\'t militarized. Basic research gets more funding, applied weapons research gets less.' },
-                ]
+                desc: 'Fission discovered a decade later.',
+                generate() {
+                    const war = pick([
+                        'Without nuclear deterrence, the Cold War stays conventional. More proxy wars, no species-level threat.',
+                        'The Cold War never gets "cold"—conventional conflict between superpowers continues into the 1960s.',
+                        'Without the bomb, mutually assured destruction is economic instead. Cold war by trade embargo.',
+                    ]);
+                    const energy = pick([
+                        'Coal and oil dominate longer. Climate change accelerates in different ways.',
+                        'Solar and wind get funded earlier as the only alternatives to fossil fuels.',
+                        'Geothermal energy becomes the dominant baseload in volcanic regions.',
+                    ]);
+                    return {
+                        desc: 'No Manhattan Project. The war ends differently. The Cold War never has its existential terror.',
+                        effects: [
+                            { type: pick(['positive','negative']), title: 'Cold War Without Nukes', desc: war },
+                            { type: 'negative', title: 'Energy Consequences', desc: energy },
+                            { type: 'positive', title: 'Science Culture', desc: 'Physics isn\'t militarized. Basic research gets more funding; weapons research gets less.' },
+                            ... diverged.has('flight') ? [{ type: 'neutral', title: 'Space Program Delayed', desc: 'Without rockets from WW2 AND without flight, orbital access takes until the 2020s.' }] : [],
+                            ... chance(0.25) ? [{ type: 'rare', title: 'Rare Outcome', desc: pick([
+                                'Without nuclear weapons, Japan is invaded conventionally. The casualties reshape Pacific politics for centuries.',
+                                'Quantum computing is discovered earlier as the peaceful alternative to nuclear physics.',
+                                'A global "Science for Peace" movement prevents the militarization of physics entirely.',
+                            ])}] : [],
+                        ],
+                        stateTag: 'Non-Nuclear World'
+                    };
+                }
             },
             {
+                id: 'internet',
                 year: '1991',
                 pos: 95,
                 title: 'Internet Fragmented',
-                desc: 'The World Wide Web never unifies. Instead of one internet, regional networks emerge — each with its own protocols, cultures, and boundaries.',
-                effects: [
-                    { type: 'negative', title: 'No Global Information Commons', desc: 'Wikipedia never exists. Knowledge stays siloed. Research moves slower without universal access.' },
-                    { type: 'positive', title: 'Less Surveillance', desc: 'Without unified platforms, mass data collection is harder. Privacy persists by default.' },
-                    { type: 'neutral', title: 'Regional Digital Cultures', desc: 'Each network develops its own conventions. More diversity, less homogenization. The "global village" never forms.' },
-                    { type: 'negative', title: 'Coordination Problems', desc: 'Open source, disaster relief, global activism — all harder without shared infrastructure. Progress becomes local.' },
-                ]
+                desc: 'Regional networks instead of one global internet.',
+                generate() {
+                    const networks = pick([
+                        'Three major internets: American, European, and East Asian. Each with its own protocols.',
+                        'National networks with controlled gateways. Information crosses borders through official channels.',
+                        'Academic networks are global; commercial networks are regional. Two-speed information society.',
+                    ]);
+                    const culture = pick([
+                        'Each network develops its own conventions. More digital diversity, less homogenization.',
+                        'Underground protocols emerge to bridge networks. A digital underground railroad for data.',
+                        'The "global village" never forms. Regional identity strengthens.',
+                    ]);
+                    return {
+                        desc: 'The World Wide Web never unifies. Instead of one internet, regional networks emerge with their own cultures.',
+                        effects: [
+                            { type: 'negative', title: 'Fragmented Networks', desc: networks },
+                            { type: pick(['positive','neutral']), title: 'Digital Divergence', desc: culture },
+                            { type: 'positive', title: 'Privacy by Default', desc: 'Without unified platforms, mass surveillance is structurally harder.' },
+                            ... chance(0.35) ? [{ type: 'rare', title: 'Emergent Phenomenon', desc: pick([
+                                'Pirate protocol bridges become the basis for a shadow internet governed by its users.',
+                                'AI develops differently in each network—three competing paradigms of machine intelligence.',
+                                'A generation of "bridge babies" grows up fluent in three network protocols, becoming the first truly global citizens.',
+                            ])}] : [],
+                        ],
+                        stateTag: 'Fragmented Web'
+                    };
+                }
             },
         ];
 
-        // Render timeline points
+        // ─── Render timeline ───
         const timeline = document.getElementById('timeline');
+        const stateBar = document.getElementById('state-bar');
+        const panel = document.getElementById('panel');
+        const cascade = document.getElementById('cascade');
+        const instruction = document.getElementById('instruction');
+        const rerollBtn = document.getElementById('reroll');
 
         points.forEach((p, i) => {
             const el = document.createElement('div');
             el.className = 'inflection-point';
             el.style.left = p.pos + '%';
-            el.innerHTML = `
-                <span class="year-label">${p.year}</span>
-                <span class="inflection-label">${p.title}</span>
-            `;
+            el.innerHTML = `<span class="year-label">${p.year}</span><span class="inflection-label">${p.title}</span>`;
             el.addEventListener('click', () => showConsequence(i));
             timeline.appendChild(el);
         });
@@ -370,22 +531,29 @@
 
         function showConsequence(index) {
             const p = points[index];
-            const panel = document.getElementById('panel');
-            const cascade = document.getElementById('cascade');
-            const instruction = document.getElementById('instruction');
+            const result = p.generate();
 
-            // Update active point
-            if (activePoint !== null) {
-                document.querySelectorAll('.inflection-point')[activePoint].classList.remove('active');
-            }
+            // Mark as diverged
+            diverged.add(p.id);
+            worldState[p.id] = result.stateTag;
+
+            // Update timeline dots
+            document.querySelectorAll('.inflection-point').forEach((el, i) => {
+                el.classList.remove('active');
+                if (diverged.has(points[i].id)) el.classList.add('diverged');
+            });
             document.querySelectorAll('.inflection-point')[index].classList.add('active');
             activePoint = index;
 
-            // Hide instruction
+            // Update state bar
             instruction.classList.add('hidden');
-
-            // Activate timeline line
-            timeline.classList.add('active');
+            stateBar.innerHTML = '';
+            for (const [id, tag] of Object.entries(worldState)) {
+                const tagEl = document.createElement('span');
+                tagEl.className = 'state-tag';
+                tagEl.textContent = tag;
+                stateBar.appendChild(tagEl);
+            }
 
             // Reset panel
             panel.classList.remove('visible');
@@ -393,25 +561,27 @@
 
             // Set content
             document.getElementById('panel-title').innerHTML = `<span>${p.year}</span> — ${p.title}`;
-            document.getElementById('panel-year').textContent = '';
-            document.getElementById('panel-desc').textContent = p.desc;
+            document.getElementById('panel-desc').textContent = result.desc;
 
             // Show panel
             setTimeout(() => panel.classList.add('visible'), 50);
 
-            // Cascade effects one by one
-            p.effects.forEach((effect, i) => {
+            // Cascade effects
+            result.effects.forEach((effect, i) => {
                 const li = document.createElement('li');
                 li.className = `cascade-item ${effect.type}`;
-                li.innerHTML = `
-                    <div class="effect-title">${effect.title}</div>
-                    <div class="effect-desc">${effect.desc}</div>
-                `;
+                const rarity = effect.type === 'rare' ? '<span class="effect-rarity">RARE</span>' : '';
+                li.innerHTML = `<div class="effect-title">${effect.title}${rarity}</div><div class="effect-desc">${effect.desc}</div>`;
                 cascade.appendChild(li);
-
                 setTimeout(() => li.classList.add('visible'), 300 + (i * 200));
             });
         }
+
+        // Reroll button
+        rerollBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (activePoint !== null) showConsequence(activePoint);
+        });
     </script>
 </body>
 </html>
