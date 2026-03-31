@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scrap Chef: Farm & Feed</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1410;overflow:hidden;font-family:'Courier New',monospace;color:#e8d5b7;user-select:none}
+canvas{display:block;cursor:crosshair}
+#ui{position:fixed;top:0;left:0;width:100%;pointer-events:none}
+#ui>*{pointer-events:auto}
+#top-bar{display:flex;align-items:center;gap:16px;padding:8px 16px;background:rgba(20,16,12,0.85);border-bottom:1px solid #3a2a18}
+#top-bar .stat{font-size:13px;white-space:nowrap}
+#scrap-display{color:#f0c040}
+#gear-display{color:#a0c0e0}
+#tool-display{color:#e08050}
+#delivery-display{color:#80c080}
+#tool-display .progress{display:inline-block;width:60px;height:6px;background:#2a2218;border-radius:3px;margin-left:6px;vertical-align:middle}
+#tool-display .progress-fill{height:100%;background:#e08050;border-radius:3px;transition:width 0.1s}
+#speed-controls{display:flex;gap:4px;margin-left:auto}
+#speed-controls button{background:#2a2218;border:1px solid #3a2a18;color:#e8d5b7;padding:2px 8px;cursor:pointer;font-family:inherit;font-size:11px}
+#speed-controls button.active{background:#4a3a28;border-color:#f0c040;color:#f0c040}
+#recipe-btn,#shop-btn,#help-btn{background:#2a2218;border:1px solid #3a2a18;color:#e8d5b7;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px}
+#recipe-btn:hover,#shop-btn:hover,#help-btn:hover{background:#3a2a18}
+#build-bar{position:fixed;bottom:0;left:0;width:100%;padding:6px 12px;background:rgba(20,16,12,0.9);border-top:1px solid #3a2a18;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.build-btn{background:#2a2218;border:1px solid #3a2a18;color:#e8d5b7;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:11px;text-align:center;line-height:1.3}
+.build-btn:hover{background:#3a2a18}
+.build-btn.selected{background:#4a3a28;border-color:#f0c040;color:#f0c040}
+.build-btn .cost{color:#f0c040;font-size:10px}
+.build-btn .gear-cost{color:#a0c0e0;font-size:10px}
+#tooltip{position:fixed;padding:6px 10px;background:rgba(30,24,18,0.95);border:1px solid #4a3a28;font-size:11px;pointer-events:none;display:none;max-width:220px;line-height:1.4;z-index:100}
+#recipe-modal,#shop-modal,#help-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e1810;border:2px solid #4a3a28;padding:20px;max-width:500px;width:90%;max-height:70vh;overflow-y:auto;z-index:200}
+#recipe-modal h2,#shop-modal h2,#help-modal h2{color:#f0c040;margin-bottom:12px;font-size:18px}
+.close{position:absolute;top:8px;right:12px;font-size:20px;cursor:pointer;color:#e8d5b7}
+.recipe-entry{padding:4px 0;font-size:12px;border-bottom:1px solid #2a2218}
+.recipe-entry.found{color:#80e080}.recipe-entry.hint{color:#887766;font-style:italic}
+.shop-entry{padding:8px;border:1px solid #2a2218;margin-bottom:6px;cursor:pointer}
+.shop-entry:hover{background:#2a2218}
+.shop-entry.maxed{opacity:0.5;cursor:default}
+.shop-entry .name{color:#f0c040;font-weight:bold;font-size:13px}
+.shop-entry .desc{color:#998877;font-size:11px;margin-top:2px}
+.shop-entry .price{color:#a0c0e0;font-size:12px;margin-top:4px}
+#start-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,12,8,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300}
+#start-screen h1{font-size:42px;color:#f0c040;margin-bottom:4px}
+#start-screen .subtitle{font-size:18px;color:#a08060;margin-bottom:24px}
+#start-screen .instructions{text-align:center;max-width:420px;line-height:1.6;font-size:13px;color:#b8a888;margin-bottom:24px}
+#start-screen button{background:#3a2a18;border:2px solid #f0c040;color:#f0c040;padding:10px 28px;font-family:inherit;font-size:16px;cursor:pointer}
+#start-screen button:hover{background:#4a3a28}
+#help-content{font-size:12px;line-height:1.5}
+#help-content b{color:#f0c040}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui">
+  <div id="top-bar">
+    <span class="stat" id="scrap-display">⚙ Scrap: 0</span>
+    <span class="stat" id="gear-display">⚙ Gears: 0</span>
+    <span class="stat" id="tool-display">⛏ Pick Lv1<span class="progress"><span class="progress-fill" style="width:0%"></span></span></span>
+    <span class="stat" id="delivery-display">🍽 Served: 0</span>
+    <button id="shop-btn" onclick="toggleShop()">🔧 Upgrades</button>
+    <button id="recipe-btn" onclick="toggleRecipes()">📖 Recipes</button>
+    <button id="help-btn" onclick="toggleHelp()">?</button>
+    <div id="speed-controls">
+      <button onclick="setSpeed(1)" class="active" id="spd1">1×</button>
+      <button onclick="setSpeed(2)" id="spd2">2×</button>
+      <button onclick="setSpeed(3)" id="spd3">3×</button>
+    </div>
+  </div>
+</div>
+<div id="build-bar"></div>
+<div id="tooltip"></div>
+<div id="recipe-modal"><span class="close" onclick="toggleRecipes()">&times;</span><h2>📖 Recipe Book</h2><div id="recipe-list"></div></div>
+<div id="shop-modal"><span class="close" onclick="toggleShop()">&times;</span><h2>🔧 Upgrades</h2><div id="shop-list"></div></div>
+<div id="help-modal"><span class="close" onclick="toggleHelp()">&times;</span><h2>How to Play</h2><div id="help-content">
+<b>The Loop:</b> Mine scrap → build farms → grow crops → cook → serve at buffet → earn ⚙ Gears → upgrade tools → mine bigger scrap<br><br>
+<b>Scrap Tiers:</b><br>
+• <b>Flecks</b> — tiny tan bits, 3 hits with rusty pick. Mine these first.<br>
+• <b>Light scrap</b> — 6-9 hits. Feasible early game.<br>
+• <b>Heavy scrap</b> — 100+ hits. Needs Power Drill or better.<br>
+• <b>Core scrap</b> — unbreakable. Place Auto-Miners (15 gears) for passive income.<br><br>
+<b>Farming Pipeline:</b><br>
+Farm (click to plant) → Grower Bot (auto-replants, 3-tile radius) → Harvester Bot (picks ripe crops) → Conveyor Belts → Grill (cooks for bonus) → Combiner (merges ingredients into recipes) → Buffet (serves food)<br><br>
+<b>Controls:</b><br>
+<b>WASD/Arrows</b> — scroll camera<br>
+<b>Click</b> — mine scrap, place buildings, plant crops<br>
+<b>R</b> — rotate belt direction (before or after placing)<br>
+<b>Right-click</b> — demolish building (50% refund)<br>
+<b>ESC</b> — deselect<br>
+<b>Hold click</b> — continuous mine with Power Drill or Plasma Cutter<br>
+<b>U/🔧 button</b> — upgrade shop
+</div></div>
+<div id="start-screen">
+  <h1>🍳 Scrap Chef</h1>
+  <div class="subtitle">Farm & Feed</div>
+  <div class="instructions">
+    <b>The Loop:</b> Mine scrap → build farms → grow crops → cook food → serve at buffet → earn ⚙ Gears → upgrade tools<br><br>
+    <b>Getting Started:</b><br>
+    1. Mine nearby <b>flecks</b> (small tan bits) to get scrap<br>
+    2. Place a <b>Farm</b>, click it to plant<br>
+    3. Place a <b>Buffet</b> where you want to serve<br>
+    4. Build <b>Belts</b> from farm to buffet to deliver crops<br>
+    5. Cook on a <b>Grill</b> for bonus gears<br><br>
+    <b>WASD</b> scroll • <b>Click</b> mine/build • <b>R</b> rotate belt • <b>Right-click</b> demolish • <b>ESC</b> deselect<br>
+    <b>Hold click</b> to continuous-mine with Power Drill+
+  </div>
+  <button onclick="startGame()">⛏ Start Mining!</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+const TILE=32;
+const COLS=42,ROWS=28;
+const TICK_RATE=1/20;
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+
+const CROP_TYPES=['Mushroom','Tuber','Grain','Spice'];
+const CROP_COLORS={Mushroom:'#d04040',Tuber:'#a07040',Grain:'#d4b040',Spice:'#40b040'};
+const CROP_GROW_TIME={Mushroom:8,Tuber:12,Grain:10,Spice:7};
+
+const SCRAP_TIERS={
+  fleck:   {name:'Scrap Fleck',   color:'#8a7050', hp:3,  value:1,  minHits:3},
+  light:   {name:'Light Scrap',   color:'#9a7a55', hp:8,  value:3,  minHits:8},
+  medium:  {name:'Heavy Scrap',   color:'#6a5a50', hp:100,value:8,  minHits:100},
+  core:    {name:'Scrap Core',    color:'#4a4a55', hp:-1, value:0,  minHits:-1},
+};
+
+const TOOL_LEVELS=[
+  {name:'Rusty Pick',  damage:1,  cooldown:0.35, cost:0,  desc:'Painfully slow. Better than nothing.'},
+  {name:'Steel Pick',  damage:3,  cooldown:0.25, cost:10, desc:'3× damage. Light scrap becomes reasonable.'},
+  {name:'Power Drill', damage:8,  cooldown:0.18, cost:30, desc:'8× damage. Heavy scrap now feasible.'},
+  {name:'Plasma Cutter',damage:20,cooldown:0.12, cost:80, desc:'20× damage. Tear through anything.'},
+];
+
+const BUILD_TYPES={
+  farm:{name:'Farm',cost:5,currency:'scrap',desc:'Grow crops. Click to plant.',limit:-1},
+  grower:{name:'Grower Bot',cost:25,currency:'scrap',desc:'Auto-replants farms in 3-tile radius.',limit:-1,radius:3},
+  harvester:{name:'Harvester',cost:20,currency:'scrap',desc:'Harvests adjacent ripe crops.',limit:-1},
+  belt:{name:'Belt',cost:2,currency:'scrap',desc:'Moves items. Click to rotate.',limit:-1},
+  grill:{name:'Grill',cost:30,currency:'scrap',desc:'Cooks items passing through.',limit:-1},
+  combiner:{name:'Combiner',cost:20,currency:'scrap',desc:'Combines 2 items into recipes.',limit:-1},
+  buffet:{name:'Buffet',cost:0,currency:'scrap',desc:'Serve food. 1 allowed (moveable).',limit:1},
+  autoharvest:{name:'Auto-Miner',cost:15,currency:'gear',desc:'Place on core scrap. Mines 1 scrap/5s.',limit:-1},
+};
+
+const RECIPES=[
+  {inputs:['Mushroom'],grilled:false,name:'Raw Shroom',value:1,gears:1},
+  {inputs:['Mushroom'],grilled:true,name:'Grilled Shroom',value:2,gears:2},
+  {inputs:['Tuber','Grain'],grilled:false,name:'Stew Base',value:5,gears:3},
+  {inputs:['Mushroom','Tuber'],grilled:false,name:'Forest Medley',value:6,gears:4},
+  {inputs:['Grain','Spice'],grilled:false,name:'Wasteland Bread',value:7,gears:4},
+  {inputs:['Mushroom','Grain'],grilled:false,name:'Scrapsoup',value:8,gears:5},
+  {inputs:['Tuber','Spice'],grilled:true,name:'Spicy Roast',value:10,gears:6},
+  {inputs:['Mushroom','Tuber','Grain'],grilled:false,name:"Chef's Special",value:15,gears:10},
+];
+
+const recipeHints=[
+  'Try serving a single Mushroom...',
+  'What happens if a Mushroom goes through a Grill?',
+  'Tuber + Grain = ?',
+  'Mushroom + Tuber = something foresty...',
+  'Grain + Spice smells like baking...',
+  'Mushroom + Grain = a classic combo',
+  'Tuber + Spice + fire = ?',
+  'Mushroom + Tuber + Grain = the ultimate dish!',
+];
+
+const DIR_DX={0:0,1:1,2:0,3:-1};
+const DIR_DY={0:-1,1:0,2:1,3:0};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let W,H,tilesX,tilesY;
+let scrap=8,gears=0,toolLevel=0,mealsServed=0,gameSpeed=1,gameStarted=false;
+let camX=0,camY=0,selectedBuild=null;
+let buffetPlaced=0;
+let mouseX=0,mouseY=0,hoverTile=null;
+let keys={};
+let lastTime=0,accumulator=0;
+let mineCooldown=0;
+let mouseDown=false,mineTarget=null;
+let beltDir=0; // default direction for belt placement
+let showingRecipes=false,showingShop=false,showingHelp=false;
+const grid=[];
+const items=[];
+const floatingTexts=[];
+const discoveredRecipes=new Set();
+
+function addFloat(x,y,text,color='#f0c040'){
+  floatingTexts.push({x:x*TILE+TILE/2,y:y*TILE+TILE/2,text,color,life:1.2,maxLife:1.2});
+}
+
+function clampCam(){
+  const mw=COLS*TILE,mh=ROWS*TILE;
+  camX=Math.max(0,Math.min(mw-W,camX));
+  camY=Math.max(0,Math.min(mh-H,camY));
+}
+
+function screenToTile(sx,sy){
+  return{x:Math.floor((sx+camX)/TILE),y:Math.floor((sy+camY)/TILE)};
+}
+
+function checkRecipe(itemTypes,grilled){
+  const sorted=[...itemTypes].sort();
+  for(const r of RECIPES){
+    if(r.grilled!==grilled)continue;
+    const rs=[...r.inputs].sort();
+    if(sorted.length!==rs.length)continue;
+    if(sorted.every((v,i)=>v===rs[i]))return r;
+  }
+  return null;
+}
+
+function updateUI(){
+  document.getElementById('scrap-display').textContent='⚙ Scrap: '+scrap;
+  document.getElementById('gear-display').textContent='⚙ Gears: '+gears;
+  document.getElementById('delivery-display').textContent='🍽 Served: '+mealsServed;
+  const tl=TOOL_LEVELS[toolLevel];
+  document.getElementById('tool-display').innerHTML='⛏ '+tl.name+'<span class="progress"><span class="progress-fill" style="width:0%"></span></span>';
+}
+
+function spawnItem(tx,ty,type,grilled=false,entryDir=-1){
+  items.push({tx,ty,px:tx*TILE,py:ty*TILE,type,grilled,moving:false,combineTimer:0,entryDir});
+}
+
+function getAdjacentTiles(x,y){
+  return[{x,y:y-1},{x:x+1,y},{x,y:y+1},{x:x-1,y}];
+}
+
+function countType(type){let c=0;for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(grid[y][x]&&grid[y][x].type===type)c++;return c}
+
+// ═══════════════════════════════════════════
+// GRID GENERATION — Gaussian scrap islands
+// ═══════════════════════════════════════════
+function initGrid(){
+  for(let y=0;y<ROWS;y++){grid[y]=[];for(let x=0;x<COLS;x++)grid[y][x]=null}
+
+  const cx=Math.floor(COLS/2),cy=Math.floor(ROWS/2);
+  camX=cx*TILE-W/2+TILE/2;camY=cy*TILE-H/2+TILE/2;clampCam();
+
+  // Clear zone around buffet
+  const clearR=4;
+  for(let dy=-clearR;dy<=clearR;dy++)for(let dx=-clearR;dx<=clearR;dx++){
+    const tx=cx+dx,ty=cy+dy;
+    if(tx>=0&&tx<COLS&&ty>=0&&ty<ROWS&&Math.abs(dx)+Math.abs(dy)<=clearR)grid[ty][tx]=null;
+  }
+
+  // Place scrap islands
+  const islands=[];
+  const numIslands=10+Math.floor(Math.random()*4);
+  for(let i=0;i<numIslands;i++){
+    let ix,iy,attempts=0;
+    do{
+      ix=Math.floor(rand(3,COLS-3));
+      iy=Math.floor(rand(3,ROWS-3));
+      attempts++;
+    }while(attempts<100&&(
+      Math.abs(ix-cx)+Math.abs(iy-cy)<5||
+      islands.some(p=>Math.abs(p.x-ix)+Math.abs(p.y-iy)<6)
+    ));
+    if(attempts<100)islands.push({x:ix,y:iy});
+  }
+
+  for(const island of islands){
+    // Core
+    grid[island.y][island.x]={type:'scrap',tier:'core',hp:-1,maxHp:-1,value:0,x:island.x,y:island.y,hitTime:0};
+
+    // Medium ring (distance 1-5, dense fill)
+    for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){
+      if(dx===0&&dy===0)continue;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<1||d>5.5)continue;
+      const tx=island.x+dx,ty=island.y+dy;
+      if(tx<0||tx>=COLS||ty<0||ty>=ROWS)continue;
+      if(grid[ty][tx])continue;
+      // High probability within 3 tiles, falling off gradually
+      const prob=d<3?0.9:Math.exp(-(d-3)*(d-3)/2.5)*0.85;
+      if(Math.random()<prob){
+        const hp=80+Math.floor(rand(0,40));
+        grid[ty][tx]={type:'scrap',tier:'medium',hp,maxHp:hp,value:6+Math.floor(rand(0,5)),x:tx,y:ty,hitTime:0};
+      }
+    }
+
+    // Light scrap (distance 5-8, thick band)
+    for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<4.5||d>8.5)continue;
+      const tx=island.x+dx,ty=island.y+dy;
+      if(tx<0||tx>=COLS||ty<0||ty>=ROWS)continue;
+      if(grid[ty][tx])continue;
+      const prob=Math.exp(-(d-5)*(d-5)/3.5)*0.65;
+      if(Math.random()<prob){
+        const hp=6+Math.floor(rand(0,4));
+        grid[ty][tx]={type:'scrap',tier:'light',hp,maxHp:hp,value:2+Math.floor(rand(0,3)),x:tx,y:ty,hitTime:0};
+      }
+    }
+  }
+
+  // Scatter flecks between islands (sparse)
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    if(grid[y][x])continue;
+    const d=Math.abs(x-cx)+Math.abs(y-cy);
+    if(d<=clearR)continue;
+    if(Math.random()<0.1){
+      grid[y][x]={type:'scrap',tier:'fleck',hp:3,maxHp:3,value:1+Math.floor(rand(0,2)),x,y,hitTime:0};
+    }
+  }
+
+  // A few extra flecks near starting area (tutorial fodder)
+  for(let i=0;i<10;i++){
+    let fx,fy,att=0;
+    do{fx=cx+Math.floor(rand(-6,7));fy=cy+Math.floor(rand(-6,7));att++}
+    while(att<50&&(fx<0||fx>=COLS||fy<0||fy>=ROWS||grid[fy][fx]||(Math.abs(fx-cx)+Math.abs(fy-cy))<2));
+    if(att<50)grid[fy][fx]={type:'scrap',tier:'fleck',hp:3,maxHp:3,value:1,x:fx,y:fy,hitTime:0};
+  }
+
+  // Carve paths from edges toward center (2 wide)
+  const pathPoints=[
+    {x:0,y:cy,dir:'h'},{x:COLS-1,y:cy,dir:'h'},
+    {x:cx,y:0,dir:'v'},{x:cx,y:ROWS-1,dir:'v'},
+  ];
+  for(const p of pathPoints){
+    let px=p.x,py=p.y;
+    const step=p.dir==='h'?(px<cx?1:-1):0;
+    const stepY=p.dir==='v'?(py<cy?1:-1):0;
+    for(let i=0;i<30;i++){
+      px+=step;py+=stepY;
+      if(px<1||px>=COLS-1||py<1||py>=ROWS-1)break;
+      if(Math.abs(px-cx)+Math.abs(py-cy)<=clearR)break;
+      // Clear 2-wide path
+      for(let dy=0;dy<=1;dy++)for(let dx=0;dx<=1;dx++){
+        const tx=px+dx,ty=py+dy;
+        if(tx>=0&&tx<COLS&&ty>=0&&ty<ROWS&&grid[ty][tx]&&grid[ty][tx].type==='scrap'&&grid[ty][tx].tier!=='core'){
+          grid[ty][tx]=null;
+        }
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// SIMULATION
+// ═══════════════════════════════════════════
+function tick(){
+  // Grow crops
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const t=grid[y][x];if(!t||t.type!=='farm'||!t.planted)continue;
+    t.growProgress+=TICK_RATE/CROP_GROW_TIME[CROP_TYPES[t.cropType]];
+    if(t.growProgress>1)t.growProgress=1;
+  }
+
+  // Harvester bots
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const t=grid[y][x];if(!t||t.type!=='harvester')continue;
+    if(t.cooldown>0){t.cooldown-=TICK_RATE;t.harvestAnim=Math.max(0,t.harvestAnim-TICK_RATE);continue}
+    const adj=getAdjacentTiles(x,y);
+    for(const a of adj){
+      if(a.x<0||a.x>=COLS||a.y<0||a.y>=ROWS)continue;
+      const f=grid[a.y][a.x];if(!f||f.type!=='farm'||!f.planted||f.growProgress<1)continue;
+      f.planted=false;f.growProgress=0;
+      const cropName=CROP_TYPES[f.cropType];
+      t.cooldown=1;t.harvesting=true;t.harvestAnim=0.5;
+      let placed=false;
+      const beltAdj=getAdjacentTiles(x,y);
+      for(const ba of beltAdj){
+        if(ba.x<0||ba.x>=COLS||ba.y<0||ba.y>=ROWS)continue;
+        const bt=grid[ba.y][ba.x];
+        if(bt&&(bt.type==='belt'||bt.type==='buffet')){
+          const occupied=items.some(it=>it.tx===ba.x&&it.ty===ba.y&&!it.moving);
+          if(!occupied){spawnItem(ba.x,ba.y,cropName);placed=true;break}
+        }
+      }
+      if(!placed){
+        const occupied=items.some(it=>it.tx===x&&it.ty===y&&!it.moving);
+        if(!occupied)spawnItem(x,y,cropName);
+      }
+      break;
+    }
+  }
+
+  // Items on harvesters → push to belts
+  for(let i=items.length-1;i>=0;i--){
+    const item=items[i];if(item.moving)continue;
+    const tile=grid[item.ty]&&grid[item.ty][item.tx];
+    if(!tile||tile.type!=='harvester')continue;
+    const adj=getAdjacentTiles(item.tx,item.ty);
+    for(const a of adj){
+      if(a.x<0||a.x>=COLS||a.y<0||a.y>=ROWS)continue;
+      const dest=grid[a.y][a.x];if(!dest)continue;
+      if(dest.type==='belt'){
+        const occupied=items.some(it=>it.tx===a.x&&it.ty===a.y&&!it.moving);
+        if(!occupied){
+          const dx=a.x-item.tx,dy=a.y-item.ty;let dir=0;
+          for(let d=0;d<4;d++)if(DIR_DX[d]===dx&&DIR_DY[d]===dy){dir=d;break}
+          item.targetX=a.x;item.targetY=a.y;item.entryDir=dir;item.moving=true;break;
+        }
+      }else if(dest.type==='buffet'){deliverItem(item);items.splice(i,1);break}
+    }
+  }
+
+  // Move items on belts/grills/combiners
+  for(let i=items.length-1;i>=0;i--){
+    const item=items[i];if(item.moving)continue;
+    const tile=grid[item.ty]&&grid[item.ty][item.tx];
+    if(!tile)continue;
+
+    if(tile.type==='belt'){
+      const dir=tile.dir,nx=item.tx+DIR_DX[dir],ny=item.ty+DIR_DY[dir];
+      if(nx<0||nx>=COLS||ny<0||ny>=ROWS)continue;
+      const dest=grid[ny][nx];
+      if(dest&&(dest.type==='belt'||dest.type==='grill'||dest.type==='combiner')){
+        const occupied=items.some(it=>it.tx===nx&&it.ty===ny&&!it.moving);
+        if(!occupied){item.targetX=nx;item.targetY=ny;item.entryDir=dir;item.moving=true}
+      }else if(dest&&dest.type==='buffet'){deliverItem(item);items.splice(i,1)}
+    }else if(tile.type==='grill'){
+      if(!item.grilled){item.grilled=true;item.grillCooked=false}
+      item.combineTimer+=TICK_RATE;
+      if(item.combineTimer<0.4)continue;
+      const dir=item.entryDir>=0?item.entryDir:0;
+      const nx=item.tx+DIR_DX[dir],ny=item.ty+DIR_DY[dir];
+      if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS){
+        const dest=grid[ny][nx];
+        if(dest&&(dest.type==='belt'||dest.type==='combiner'||dest.type==='grill')){
+          const occupied=items.some(it=>it.tx===nx&&it.ty===ny&&!it.moving);
+          if(!occupied){item.targetX=nx;item.targetY=ny;item.entryDir=dir;item.moving=true;continue}
+        }else if(dest&&dest.type==='buffet'){deliverItem(item);items.splice(i,1);continue}
+      }
+    }else if(tile.type==='combiner'){
+      const others=items.filter(it=>it!==item&&it.tx===item.tx&&it.ty===item.ty&&!it.moving);
+      if(others.length>0){
+        const other=others[0],types=[item.type,other.type],anyGrilled=item.grilled||other.grilled;
+        let recipe=checkRecipe(types,true);
+        if(!recipe)recipe=checkRecipe(types,false);
+        if(recipe){deliverRecipe(item.tx,item.ty,recipe);items.splice(i,1);const oi=items.indexOf(other);if(oi>=0)items.splice(oi,1);continue}
+      }
+      item.combineTimer+=TICK_RATE;if(item.combineTimer<0.4)continue;
+      if(others.length>0)continue;
+      const dir=item.entryDir>=0?item.entryDir:0;
+      const nx=item.tx+DIR_DX[dir],ny=item.ty+DIR_DY[dir];
+      if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS){
+        const dest=grid[ny][nx];
+        if(dest&&(dest.type==='belt'||dest.type==='combiner'||dest.type==='grill')){
+          const occupied=items.some(it=>it.tx===nx&&it.ty===ny&&!it.moving);
+          if(!occupied){item.targetX=nx;item.targetY=ny;item.entryDir=dir;item.moving=true;continue}
+        }else if(dest&&dest.type==='buffet'){deliverItem(item);items.splice(i,1);continue}
+      }
+    }
+  }
+
+  // Grower bots — replant empty farms in radius
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const t=grid[y][x];if(!t||t.type!=='grower')continue;
+    if(t.cooldown>0){t.cooldown-=TICK_RATE;continue}
+    const rad=3;
+    let replanted=false;
+    for(let dy=-rad;dy<=rad&&!replanted;dy++)for(let dx=-rad;dx<=rad&&!replanted;dx++){
+      const tx=x+dx,ty=y+dy;
+      if(tx<0||tx>=COLS||ty<0||ty>=ROWS)continue;
+      const f=grid[ty][tx];
+      if(!f||f.type!=='farm'||f.planted)continue;
+      // Replant with same crop type, or default to mushroom
+      if(f.cropType==null)f.cropType=0;
+      f.planted=true;f.growProgress=0;
+      t.cooldown=2;t.plantAnim=0.5;
+      replanted=true;
+    }
+    if(t.plantAnim>0)t.plantAnim=Math.max(0,t.plantAnim-TICK_RATE);
+  }
+
+  // Auto-harvesters (on core scrap)
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const t=grid[y][x];if(!t||t.type!=='autoharvest')continue;
+    t.timer+=TICK_RATE;
+    if(t.timer>=5){
+      t.timer=0;scrap++;
+      addFloat(x,y,'+1 ⚙','#f0c040');
+      updateUI();
+    }
+  }
+}
+
+function deliverItem(item){
+  const types=[item.type],recipe=checkRecipe(types,item.grilled);
+  if(recipe){deliverRecipe(item.tx,item.ty,recipe)}
+  else{const val=item.grilled?2:1,g=val;scrap+=val;gears+=g;mealsServed++;addFloat(item.tx,item.ty,'+'+val+' ⚙ +'+g+' ⚙','f0c040');updateUI()}
+}
+
+function deliverRecipe(tx,ty,recipe){
+  if(!discoveredRecipes.has(recipe.name))discoveredRecipes.add(recipe.name);
+  scrap+=recipe.value;gears+=recipe.gears;mealsServed++;
+  addFloat(tx,ty,'+'+recipe.value+' ⚙ +'+recipe.gears+' ⚙ '+recipe.name,'#a0d060');
+  for(let p=0;p<6;p++){const a=p*Math.PI/3;floatingTexts.push({x:tx*TILE+TILE/2+Math.cos(a)*15,y:ty*TILE+TILE/2+Math.sin(a)*15,text:'✨',color:'#f0c040',life:1,maxLife:1})}
+  updateUI();
+}
+
+function updateMoving(dt){
+  const speed=TILE*3;
+  for(const item of items){
+    if(!item.moving)continue;
+    const tx=item.targetX*TILE,ty=item.targetY*TILE;
+    const dx=tx-item.px,dy=ty-item.py,d=Math.sqrt(dx*dx+dy*dy),move=speed*dt;
+    if(d<=move){item.px=tx;item.py=ty;item.tx=item.targetX;item.ty=item.targetY;item.moving=false;item.combineTimer=0}
+    else{item.px+=dx/d*move;item.py+=dy/d*move}
+  }
+}
+
+function update(dt){
+  if(!gameStarted)return;
+  const scaledDt=dt*gameSpeed;
+  if(mineCooldown>0)mineCooldown-=dt;
+
+  // Hold-to-mine for power drill+
+  if(mouseDown&&mineCooldown<=0&&toolLevel>=2&&!selectedBuild){
+    const t=screenToTile(mouseX,mouseY);
+    if(t.x>=0&&t.x<COLS&&t.y>=0&&t.y<ROWS){
+      const tile=grid[t.y][t.x];
+      if(tile&&tile.type==='scrap'&&tile.tier!=='core'){
+        doMine(tile,t.x,t.y);
+      }
+    }
+  }
+
+  for(let i=floatingTexts.length-1;i>=0;i--){
+    floatingTexts[i].life-=dt;floatingTexts[i].y-=30*dt;
+    if(floatingTexts[i].life<=0)floatingTexts.splice(i,1);
+  }
+
+  const camSpd=300*dt;
+  if(keys['w']||keys['W']||keys['ArrowUp'])camY-=camSpd;
+  if(keys['s']||keys['S']||keys['ArrowDown'])camY+=camSpd;
+  if(keys['a']||keys['A']||keys['ArrowLeft'])camX-=camSpd;
+  if(keys['d']||keys['D']||keys['ArrowRight'])camX+=camSpd;
+  clampCam();
+
+  accumulator+=scaledDt;
+  while(accumulator>=TICK_RATE){tick();accumulator-=TICK_RATE}
+  updateMoving(scaledDt);
+}
+
+// ═══════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════
+function render(){
+  ctx.fillStyle='#1a1410';ctx.fillRect(0,0,W,H);
+  if(!gameStarted)return;
+  const sc=Math.floor(camX/TILE),sr=Math.floor(camY/TILE);
+  const ec=Math.min(COLS,sc+tilesX+2),er=Math.min(ROWS,sr+tilesY+2);
+
+  // Ground
+  for(let y=sr;y<er;y++)for(let x=sc;x<ec;x++){
+    const sx=x*TILE-camX,sy=y*TILE-camY;
+    ctx.fillStyle=(x+y)%2===0?'#2a2218':'#282016';
+    ctx.fillRect(sx,sy,TILE,TILE);
+    ctx.strokeStyle='#1a1410';ctx.lineWidth=0.5;ctx.strokeRect(sx,sy,TILE,TILE);
+  }
+
+  // Tiles
+  for(let y=sr;y<er;y++)for(let x=sc;x<ec;x++){
+    const t=grid[y][x];if(!t)continue;
+    drawTile(t,x*TILE-camX,y*TILE-camY);
+  }
+
+  // Items
+  for(const item of items)drawItem(item,item.px-camX,item.py-camY);
+
+  // Hover preview
+  if(selectedBuild&&hoverTile&&hoverTile.x>=0&&hoverTile.x<COLS&&hoverTile.y>=0&&hoverTile.y<ROWS){
+    const sx=hoverTile.x*TILE-camX,sy=hoverTile.y*TILE-camY;
+    // Show radius for buildings that have one
+    const bt=BUILD_TYPES[selectedBuild];
+    if(bt&&bt.radius){
+      const rad=bt.radius*TILE;
+      ctx.strokeStyle='rgba(120,200,120,0.25)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(sx+TILE/2,sy+TILE/2,rad,0,6.2832);ctx.stroke();
+      ctx.fillStyle='rgba(120,200,120,0.05)';ctx.fill();
+    }
+    ctx.globalAlpha=0.4;
+    const canPlace=!grid[hoverTile.y][hoverTile.x]||
+      (selectedBuild==='autoharvest'&&grid[hoverTile.y][hoverTile.x].type==='scrap'&&grid[hoverTile.y][hoverTile.x].tier==='core');
+    if(canPlace){
+      const fake={type:selectedBuild,x:hoverTile.x,y:hoverTile.y,dir:selectedBuild==='belt'?beltDir:0,growProgress:0,planted:false,cropType:0,timer:0};
+      drawTile(fake,sx,sy);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // Hover highlight + tooltip
+  if(hoverTile&&hoverTile.x>=0&&hoverTile.x<COLS&&hoverTile.y>=0&&hoverTile.y<ROWS){
+    const sx=hoverTile.x*TILE-camX,sy=hoverTile.y*TILE-camY;
+    ctx.strokeStyle='rgba(240,192,64,0.5)';ctx.lineWidth=2;ctx.strokeRect(sx+1,sy+1,TILE-2,TILE-2);
+    const ht=grid[hoverTile.y][hoverTile.x];
+    if(ht&&ht.type==='scrap'&&ht.hp>0&&ht.hp!==-1){
+      const pct=ht.hp/ht.maxHp;
+      ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(sx+4,sy-6,TILE-8,4);
+      ctx.fillStyle=pct>0.6?'#40c040':pct>0.3?'#c0c040':'#c04040';
+      ctx.fillRect(sx+4,sy-6,(TILE-8)*pct,4);
+    }
+    if(ht&&ht.type==='scrap')drawScrapTooltip(ht,sx,sy);
+  }
+
+  // Floating texts
+  ctx.textAlign='center';
+  for(const ft of floatingTexts){
+    ctx.globalAlpha=Math.max(0,ft.life/ft.maxLife);
+    ctx.fillStyle=ft.color;ctx.font='bold 12px monospace';
+    ctx.fillText(ft.text,ft.x-camX,ft.y-camY);
+  }
+  ctx.globalAlpha=1;
+
+  // Mine cooldown indicator on cursor
+  if(mineCooldown>0){
+    const pct=mineCooldown/TOOL_LEVELS[toolLevel].cooldown;
+    const tool=TOOL_LEVELS[toolLevel];
+    ctx.strokeStyle='rgba(224,128,80,0.5)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(mouseX,mouseY,12,-Math.PI/2,-Math.PI/2+6.2832*(1-pct));ctx.stroke();
+  }
+}
+
+function drawScrapTooltip(tile,sx,sy){
+  const tier=SCRAP_TIERS[tile.tier];
+  // HP bar
+  if(tile.hp>0){
+    const barW=TILE-8,barX=sx+4,barY=sy-10;
+    const pct=tile.hp/tile.maxHp;
+    ctx.fillStyle='#333';ctx.fillRect(barX,barY,barW,5);
+    ctx.fillStyle=pct>0.6?'#40c040':pct>0.3?'#c0c040':'#c04040';
+    ctx.fillRect(barX,barY,barW*pct,5);
+  }
+  // Info
+  ctx.fillStyle='#e8d5b7';ctx.font='9px monospace';ctx.textAlign='center';
+  if(tile.tier==='core'){
+    ctx.fillText('CORE',sx+TILE/2,sy-14);
+  }else{
+    const dmg=TOOL_LEVELS[toolLevel].damage;
+    const hits=Math.ceil(tile.hp/dmg);
+    ctx.fillText(tier.name+' • '+hits+' hits • '+tile.value+'⚙',sx+TILE/2,sy-14);
+  }
+}
+
+function drawTile(tile,sx,sy){
+  const cx=sx+TILE/2,cy=sy+TILE/2;
+  const t=Date.now();
+
+  if(tile.type==='buffet'){
+    const pulse=0.15+Math.sin(t/400)*0.08;
+    ctx.fillStyle=`rgba(240,192,64,${pulse})`;ctx.fillRect(sx-2,sy-2,TILE+4,TILE+4);
+    ctx.fillStyle='#8B6914';ctx.fillRect(sx+2,sy+2,TILE-4,TILE-4);
+    ctx.fillStyle='#A07828';ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+    ctx.fillStyle='#6a4a1a';ctx.fillRect(sx+4,sy+TILE-8,4,5);ctx.fillRect(sx+TILE-8,sy+TILE-8,4,5);
+    ctx.fillStyle='#e8e0d0';ctx.beginPath();ctx.arc(cx-6,cy-2,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+6,cy-2,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#d04040';ctx.beginPath();ctx.arc(cx-6,cy-2,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#40b040';ctx.beginPath();ctx.arc(cx+6,cy-2,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f0c040';ctx.font='bold 7px monospace';ctx.textAlign='center';ctx.fillText('BUFFET',cx,cy+12);
+  }
+  else if(tile.type==='scrap'){
+    drawScrapTile(tile,sx,sy,cx,cy,t);
+  }
+  else if(tile.type==='autoharvest'){
+    // Draw core underneath
+    drawScrapTile({tier:'core',hp:-1,hitTime:0,x:tile.x,y:tile.y},sx,sy,cx,cy,t);
+    // Robot overlay
+    ctx.fillStyle='rgba(60,120,60,0.8)';ctx.fillRect(sx+6,sy+6,TILE-12,TILE-12);
+    ctx.fillStyle='#80c080';ctx.fillRect(sx+8,sy+8,TILE-16,TILE-16);
+    ctx.fillStyle='#40f040';ctx.fillRect(cx-4,cy-2,3,3);ctx.fillRect(cx+1,cy-2,3,3);
+    ctx.fillStyle='#aabbcc';ctx.fillRect(cx-1,sy+2,2,6);
+    // Mining animation
+    const animPhase=Math.sin(t/500)*3;
+    ctx.fillStyle='#f0c040';ctx.fillRect(cx-1+animPhase,cy+4,3,3);
+  }
+  else if(tile.type==='farm'){
+    ctx.fillStyle='#3a2a18';ctx.fillRect(sx+1,sy+1,TILE-2,TILE-2);
+    if(tile.planted){
+      const p=tile.growProgress,cropName=CROP_TYPES[tile.cropType],col=CROP_COLORS[cropName];
+      if(p<0.33){ctx.fillStyle='#5a8a30';ctx.fillRect(cx-1,cy+4,3,4);ctx.fillRect(cx-3,cy+4,7,2)}
+      else if(p<0.66){ctx.fillStyle='#5a8a30';ctx.fillRect(cx-1,cy,3,8);ctx.fillStyle=col;ctx.globalAlpha=0.5;ctx.beginPath();ctx.arc(cx,cy+2,4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+      else{ctx.fillStyle='#5a8a30';ctx.fillRect(cx-1,cy-2,3,10);ctx.fillStyle=col;ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(240,240,100,0.15)';ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);ctx.fill()}
+    }else if(tile.cropType!=null){
+      ctx.fillStyle=CROP_COLORS[CROP_TYPES[tile.cropType]];ctx.globalAlpha=0.3;ctx.font='8px monospace';ctx.textAlign='center';ctx.fillText(CROP_TYPES[tile.cropType][0],cx,cy+3);ctx.globalAlpha=1;
+    }
+  }
+  else if(tile.type==='belt'){
+    ctx.fillStyle='#4a4a50';ctx.fillRect(sx+1,sy+1,TILE-2,TILE-2);
+    ctx.fillStyle='#5a5a60';ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+    const ph=(t/300)%TILE,dir=tile.dir;
+    ctx.fillStyle='#6a6a70';
+    if(dir===0){for(let i=-1;i<5;i++){const yy=sy+4+((i*TILE/4+ph)%(TILE-8));ctx.fillRect(sx+6,yy,TILE-12,2)}}
+    else if(dir===1){for(let i=-1;i<5;i++){const xx=sx+4+((i*TILE/4+ph)%(TILE-8));ctx.fillRect(xx,sy+6,2,TILE-12)}}
+    else if(dir===2){for(let i=-1;i<5;i++){const yy=sy+4+((i*TILE/4-ph+TILE)%(TILE-8));ctx.fillRect(sx+6,yy,TILE-12,2)}}
+    else{for(let i=-1;i<5;i++){const xx=sx+4+((i*TILE/4-ph+TILE)%(TILE-8));ctx.fillRect(xx,sy+6,2,TILE-12)}}
+    ctx.fillStyle='#f0c040';ctx.save();ctx.translate(cx,cy);ctx.rotate(dir*Math.PI/2);
+    ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(4,2);ctx.lineTo(-4,2);ctx.closePath();ctx.fill();ctx.restore();
+  }
+  else if(tile.type==='harvester'){
+    ctx.fillStyle='#708090';ctx.fillRect(sx+6,sy+6,TILE-12,TILE-12);
+    ctx.fillStyle='#8899aa';ctx.fillRect(sx+8,sy+8,TILE-16,TILE-16);
+    ctx.fillStyle='#40f040';ctx.fillRect(cx-4,cy-2,3,3);ctx.fillRect(cx+1,cy-2,3,3);
+    ctx.fillStyle='#aabbcc';ctx.fillRect(cx-1,sy+2,2,6);
+    if(tile.harvestAnim>0){ctx.fillStyle='rgba(240,200,60,'+tile.harvestAnim+')';ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);ctx.fill()}
+  }
+  else if(tile.type==='grower'){
+    ctx.fillStyle='#407040';ctx.fillRect(sx+6,sy+6,TILE-12,TILE-12);
+    ctx.fillStyle='#509050';ctx.fillRect(sx+8,sy+8,TILE-16,TILE-16);
+    ctx.fillStyle='#80ff80';ctx.fillRect(cx-4,cy-2,3,3);ctx.fillRect(cx+1,cy-2,3,3);
+    ctx.fillStyle='#aaccbb';ctx.fillRect(cx-1,sy+2,2,6);
+    // Leaf antenna
+    ctx.fillStyle='#40c040';ctx.beginPath();ctx.ellipse(cx+4,sy+3,4,2,0.5,0,Math.PI*2);ctx.fill();
+    if(tile.plantAnim>0){ctx.fillStyle='rgba(100,240,100,'+tile.plantAnim+')';ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);ctx.fill()}
+  }
+  else if(tile.type==='grill'){
+    ctx.fillStyle='#5a3030';ctx.fillRect(sx+2,sy+2,TILE-4,TILE-4);
+    ctx.strokeStyle='#8a4040';ctx.lineWidth=2;
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(sx+4,sy+6+i*6);ctx.lineTo(sx+TILE-4,sy+6+i*6);ctx.stroke()}
+    ctx.fillStyle='rgba(255,100,30,0.2)';ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);ctx.fill();
+    const flicker=Math.sin(t/100)*2;ctx.fillStyle='#ff6030';ctx.beginPath();ctx.moveTo(cx-4,cy+6);ctx.lineTo(cx,cy-4+flicker);ctx.lineTo(cx+4,cy+6);ctx.fill();
+  }
+  else if(tile.type==='combiner'){
+    ctx.fillStyle='#2a4a3a';ctx.fillRect(sx+2,sy+2,TILE-4,TILE-4);
+    ctx.fillStyle='#3a6a4a';ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+    ctx.fillStyle='#80e080';ctx.fillRect(cx-5,cy-1,10,3);ctx.fillRect(cx-1,cy-5,3,10);
+    ctx.fillStyle='rgba(100,240,100,0.1)';ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawScrapTile(tile,sx,sy,cx,cy,t){
+  const tier=tile.tier;
+  const wobble=Math.sin(t/800+(tile.x||0)*3+(tile.y||0)*7)*0.5;
+  const hitFlash=tile.hitTime&&(t-tile.hitTime<150);
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(wobble*Math.PI/180);
+  if(hitFlash){ctx.translate(Math.random()*4-2,Math.random()*4-2);ctx.globalAlpha=0.7;}
+
+  if(tier==='fleck'){
+    ctx.fillStyle='#8a7050';ctx.fillRect(-3,-2,5,3);ctx.fillRect(-1,1,3,2);
+    ctx.fillStyle='#9a8060';ctx.fillRect(-2,0,2,2);
+  }else if(tier==='light'){
+    ctx.fillStyle='#9a7a55';ctx.fillRect(-8,-5,6,4);ctx.fillRect(-3,-2,5,3);ctx.fillRect(-5,2,5,3);
+    ctx.fillStyle='#8a6a45';ctx.fillRect(-4,-3,3,3);
+  }else if(tier==='medium'){
+    ctx.fillStyle='#6a5a50';ctx.fillRect(-12,-9,9,6);ctx.fillRect(-4,-7,10,7);ctx.fillRect(-10,1,10,7);ctx.fillRect(2,-3,7,8);
+    ctx.fillStyle='#5a4a40';ctx.fillRect(-7,-5,6,5);ctx.fillRect(-2,3,5,4);
+    ctx.fillStyle='#7a6a5a';ctx.beginPath();ctx.arc(0,-5,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(6,4,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#5a5050';ctx.fillRect(-10,5,4,4);
+  }else if(tier==='core'){
+    ctx.fillStyle='#3a3a50';ctx.fillRect(-14,-11,11,8);ctx.fillRect(-5,-13,13,9);ctx.fillRect(-11,0,13,9);ctx.fillRect(4,-5,9,11);
+    ctx.fillStyle='#2a2a40';ctx.fillRect(-9,-7,8,6);ctx.fillRect(-3,2,7,6);
+    ctx.fillStyle='#4a4a60';ctx.beginPath();ctx.arc(-1,-7,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(8,4,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3a4055';ctx.fillRect(-13,5,6,5);
+    // Pulsing glow
+    const glow=0.1+Math.sin(t/600+tile.x)*0.08;
+    ctx.fillStyle=`rgba(100,120,200,${glow})`;ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();
+  }
+
+  // Shimmer
+  const shimmer=Math.sin(t/500+(tile.x||0)*2+(tile.y||0)*5)*0.15+0.1;
+  ctx.fillStyle=`rgba(200,200,220,${shimmer})`;ctx.fillRect(-2,-2,4,4);
+
+  // HP bar hidden unless hovered (drawn in hover section)
+
+  ctx.globalAlpha=1;ctx.restore();
+}
+
+function drawItem(item,sx,sy){
+  const cx=sx+TILE/2,cy=sy+TILE/2,col=CROP_COLORS[item.type];
+  ctx.fillStyle=col;
+  if(item.type==='Mushroom'){ctx.beginPath();ctx.arc(cx,cy-2,5,Math.PI,0);ctx.fill();ctx.fillRect(cx-2,cy-2,4,6)}
+  else if(item.type==='Tuber'){ctx.beginPath();ctx.ellipse(cx,cy,5,4,0,0,Math.PI*2);ctx.fill()}
+  else if(item.type==='Grain'){ctx.fillRect(cx-1,cy-6,2,10);ctx.beginPath();ctx.arc(cx,cy-6,3,0,Math.PI*2);ctx.fill()}
+  else if(item.type==='Spice'){ctx.beginPath();ctx.ellipse(cx,cy,6,3,Math.PI/4,0,Math.PI*2);ctx.fill()}
+  if(item.grilled){ctx.strokeStyle='#ff6030';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.stroke()}
+}
+
+// ═══════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;tilesX=Math.ceil(W/TILE)+2;tilesY=Math.ceil(H/TILE)+2}
+window.addEventListener('resize',resize);resize();
+
+function buildMenu(){
+  const bar=document.getElementById('build-bar');bar.innerHTML='';
+  for(const[key,b]of Object.entries(BUILD_TYPES)){
+    const btn=document.createElement('button');btn.className='build-btn'+(selectedBuild===key?' selected':'');
+    const costClass=b.currency==='gear'?'gear-cost':'cost';
+    const symbol=b.currency==='gear'?'⚙':'⚙';
+    const atLimit=b.limit>0&&((b.limit===1&&key==='buffet'&&buffetPlaced>=1)||(b.limit<=countType(key)));
+    const label=atLimit?b.name+' (placed)':b.name;
+    btn.innerHTML=`${label}<br><span class="${costClass}">${b.cost>0?symbol+' '+b.cost:'FREE'}</span>`;
+    if(atLimit){btn.style.opacity='0.4';btn.style.pointerEvents='none'}
+    btn.onclick=()=>{selectedBuild=selectedBuild===key?null:key;buildMenu()};
+    bar.appendChild(btn);
+  }
+}
+
+function setSpeed(s){gameSpeed=s;document.querySelectorAll('#speed-controls button').forEach((b,i)=>b.classList.toggle('active',i+1===s))}
+
+function toggleRecipes(){showingRecipes=!showingRecipes;document.getElementById('recipe-modal').style.display=showingRecipes?'block':'none';if(showingRecipes)renderRecipeBook()}
+function toggleShop(){showingShop=!showingShop;document.getElementById('shop-modal').style.display=showingShop?'block':'none';if(showingShop)renderShop()}
+function toggleHelp(){showingHelp=!showingHelp;document.getElementById('help-modal').style.display=showingHelp?'block':'none'}
+
+function renderRecipeBook(){
+  const list=document.getElementById('recipe-list');list.innerHTML='';
+  RECIPES.forEach((r,i)=>{
+    const div=document.createElement('div');div.className='recipe-entry';
+    if(discoveredRecipes.has(r.name)){div.classList.add('found');const g=r.grilled?' + 🔥':'';div.textContent=`✓ ${r.name} (${r.inputs.join('+')}${g}) = ${r.value}⚙ ${r.gears}⚙`}
+    else{div.classList.add('hint');div.textContent=`? ${recipeHints[i]}`}
+    list.appendChild(div);
+  });
+}
+
+function renderShop(){
+  const list=document.getElementById('shop-list');list.innerHTML='';
+  // Tool upgrades
+  const h=document.createElement('h3');h.textContent='⛏ Mining Tools';h.style.color='#e08050';h.style.marginTop='8px';list.appendChild(h);
+  for(let i=1;i<TOOL_LEVELS.length;i++){
+    const tl=TOOL_LEVELS[i],div=document.createElement('div');
+    const owned=toolLevel>=i;const canBuy=!owned&&toolLevel===i-1&&gears>=tl.cost;
+    div.className='shop-entry'+(owned?' maxed':'');
+    div.innerHTML=`<div class="name">${owned?'✓ ':''}${tl.name}</div><div class="desc">${tl.desc}</div><div class="price">${owned?'Owned':'⚙ '+tl.cost+' Gears'}</div>`;
+    if(!owned){
+      div.style.borderColor=canBuy?'#a0c0e0':'#2a2218';
+      if(canBuy)div.onclick=()=>{gears-=tl.cost;toolLevel=i;updateUI();renderShop();buildMenu()};
+    }
+    list.appendChild(div);
+  }
+}
+
+function startGame(){
+  document.getElementById('start-screen').style.display='none';
+  gameStarted=true;initGrid();buildMenu();updateUI();
+}
+
+canvas.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;hoverTile=screenToTile(mouseX,mouseY)});
+canvas.addEventListener('mousedown',e=>{mouseDown=true});
+canvas.addEventListener('mouseup',()=>{mouseDown=false;mineTarget=null});
+canvas.addEventListener('mouseleave',()=>{mouseDown=false;mineTarget=null});
+function doMine(tile,tx,ty){
+  if(tile.hp<=0)return;
+  const tool=TOOL_LEVELS[toolLevel];
+  tile.hp-=tool.damage;tile.hitTime=Date.now();
+  mineCooldown=tool.cooldown;
+  if(tile.hp<=0){
+    scrap+=tile.value;
+    addFloat(tx,ty,'+'+tile.value+' ⚙','#f0c040');
+    grid[ty][tx]=null;
+  }else{
+    const hits=Math.ceil(tile.hp/tool.damage);
+    addFloat(tx,ty,'-'+tool.damage+' ('+hits+')','#cc8844');
+  }
+  updateUI();
+}
+
+canvas.addEventListener('click',e=>{
+  if(!gameStarted)return;
+  const t=screenToTile(e.clientX,e.clientY);
+  if(t.x<0||t.x>=COLS||t.y<0||t.y>=ROWS)return;
+  const tile=grid[t.y][t.x];
+
+  // Mining scrap
+  if(tile&&tile.type==='scrap'&&(!selectedBuild||selectedBuild==='demolish')){
+    if(tile.tier==='core'){
+      addFloat(t.x,t.y,'Cannot break core','#ff6644');
+      return;
+    }
+    if(mineCooldown>0)return;
+    doMine(tile,t.x,t.y);
+    return;
+  }
+
+  // Demolish
+  if(selectedBuild==='demolish'){
+    if(!tile)return;
+    if(tile.type==='scrap'){if(tile.tier==='core')return;grid[t.y][t.x]=null;return}
+    if(tile.type==='buffet')buffetPlaced--;
+    for(let i=items.length-1;i>=0;i--)if(items[i].tx===t.x&&items[i].ty===t.y)items.splice(i,1);
+    const refund=BUILD_TYPES[tile.type]?BUILD_TYPES[tile.type].cost:0;
+    if(BUILD_TYPES[tile.type]&&BUILD_TYPES[tile.type].currency==='scrap')scrap+=Math.floor(refund/2);
+    else if(BUILD_TYPES[tile.type]&&BUILD_TYPES[tile.type].currency==='gear')gears+=Math.floor(refund/2);
+    grid[t.y][t.x]=null;updateUI();buildMenu();return;
+  }
+
+  // Build
+  if(selectedBuild){
+    const bt=BUILD_TYPES[selectedBuild];
+    // Check limits
+    if(selectedBuild==='buffet'&&buffetPlaced>=1){addFloat(t.x,t.y,'Only 1 buffet allowed','#ff6644');return}
+    // Auto-harvest goes on core scrap
+    if(selectedBuild==='autoharvest'){
+      if(!tile||tile.type!=='scrap'||tile.tier!=='core'){addFloat(t.x,t.y,'Place on core scrap','#ff6644');return}
+      if(gears<bt.cost)return;
+      gears-=bt.cost;
+      grid[t.y][t.x]={type:'autoharvest',x:t.x,y:t.y,timer:0};
+      addFloat(t.x,t.y,'Auto-Miner!','#80ff80');
+      updateUI();return;
+    }
+    if(tile)return;
+    if(bt.currency==='scrap'&&scrap<bt.cost)return;
+    if(bt.currency==='gear'&&gears<bt.cost)return;
+    if(bt.currency==='scrap')scrap-=bt.cost;
+    if(bt.currency==='gear')gears-=bt.cost;
+    const bld={type:selectedBuild,x:t.x,y:t.y};
+    if(selectedBuild==='belt')bld.dir=beltDir;
+    if(selectedBuild==='farm'){bld.cropType=null;bld.growProgress=0;bld.planted=false}
+    if(selectedBuild==='harvester'){bld.cooldown=0;bld.harvesting=false;bld.harvestAnim=0}
+    if(selectedBuild==='grower'){bld.cooldown=0;bld.plantAnim=0}
+    if(selectedBuild==='buffet')buffetPlaced++;
+    grid[t.y][t.x]=bld;updateUI();return;
+  }
+
+  // Interact with existing tiles
+  if(tile){
+    if(tile.type==='farm'&&!tile.planted){
+      if(!tile.cropType)tile.cropType=0;else tile.cropType=(tile.cropType+1)%4;
+      tile.planted=true;tile.growProgress=0;
+      addFloat(tile.x,tile.y,CROP_TYPES[tile.cropType],'#80ff80');return;
+    }
+    if(tile.type==='belt'){tile.dir=(tile.dir+1)%4;return}
+  }
+});
+
+canvas.addEventListener('contextmenu',e=>{
+  e.preventDefault();if(!gameStarted)return;
+  const t=screenToTile(e.clientX,e.clientY);
+  if(t.x<0||t.x>=COLS||t.y<0||t.y>=ROWS)return;
+  const tile=grid[t.y][t.x];if(!tile)return;
+  if(tile.type==='buffet')buffetPlaced--;
+  if(tile.type==='scrap'){if(tile.tier==='core')return;grid[t.y][t.x]=null;return}
+  for(let i=items.length-1;i>=0;i--)if(items[i].tx===t.x&&items[i].ty===t.y)items.splice(i,1);
+  const refund=BUILD_TYPES[tile.type]?BUILD_TYPES[tile.type].cost:0;
+  if(BUILD_TYPES[tile.type]&&BUILD_TYPES[tile.type].currency==='scrap')scrap+=Math.floor(refund/2);
+  grid[t.y][t.x]=null;updateUI();
+});
+
+window.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(e.key==='Escape'){selectedBuild=null;buildMenu()}
+  if(e.key==='r'||e.key==='R'){
+    beltDir=(beltDir+1)%4;
+    // Also rotate existing belt if hovering one with no build selected
+    if(!selectedBuild&&hoverTile&&hoverTile.x>=0&&hoverTile.x<COLS&&hoverTile.y>=0&&hoverTile.y<ROWS){
+      const t=grid[hoverTile.y][hoverTile.x];
+      if(t&&t.type==='belt')t.dir=(t.dir+1)%4;
+    }
+  }
+});
+window.addEventListener('keyup',e=>keys[e.key]=false);
+
+// ═══════════════════════════════════════════
+// GAME LOOP
+// ═══════════════════════════════════════════
+function gameLoop(time){
+  const dt=Math.min((time-lastTime)/1000,0.1);lastTime=time;
+  update(dt);render();
+  // Update cooldown visual
+  if(mineCooldown>0){
+    const fill=document.querySelector('#tool-display .progress-fill');
+    const tool=TOOL_LEVELS[toolLevel];
+    if(fill)fill.style.width=(mineCooldown/tool.cooldown*100)+'%';
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+const rand=(a,b)=>Math.random()*(b-a)+a;
+lastTime=performance.now();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
