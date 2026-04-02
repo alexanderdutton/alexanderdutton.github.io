@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terrarium</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a12;
+    color: #ccc;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+  #header {
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+    color: #666;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #1a1a2a;
+  }
+  #game-area {
+    flex: 1;
+    display: flex;
+    position: relative;
+  }
+  canvas {
+    flex: 1;
+    cursor: crosshair;
+  }
+  #sidebar {
+    width: 240px;
+    background: #0d0d18;
+    border-left: 1px solid #1a1a2a;
+    padding: 12px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+  #sidebar h3 {
+    color: #4a9;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .tool-btn {
+    background: #151525;
+    border: 1px solid #2a2a4a;
+    color: #aaa;
+    padding: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .tool-btn:hover { background: #1a1a35; border-color: #4a9; color: #ddd; }
+  .tool-btn.active { border-color: #4a9; color: #4a9; background: #0f1a20; }
+  .creature-info {
+    background: #151525;
+    border: 1px solid #2a2a4a;
+    padding: 8px;
+    min-height: 60px;
+  }
+  .creature-info .name { color: #fff; font-size: 13px; margin-bottom: 4px; }
+  .creature-info .detail { color: #777; font-size: 11px; line-height: 1.5; }
+
+  /* Hypothesis system */
+  .hypothesis-section { }
+  .hypothesis-counter {
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .hyp-builder {
+    background: #151525;
+    border: 1px solid #2a2a4a;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hyp-builder select {
+    background: #0a0a14;
+    border: 1px solid #2a2a4a;
+    color: #aaa;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .hyp-builder select:focus { border-color: #4a9; outline: none; }
+  .hyp-propose-btn {
+    background: #151525;
+    border: 1px solid #4a9;
+    color: #4a9;
+    padding: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    margin-top: 2px;
+    transition: all 0.15s;
+  }
+  .hyp-propose-btn:hover { background: #1a2a25; }
+  .hyp-card {
+    background: #151525;
+    border: 1px dashed #333;
+    border-left: 3px solid #333;
+    padding: 6px 8px;
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    position: relative;
+  }
+  .hyp-card .hyp-label {
+    color: #777;
+    font-size: 10px;
+  }
+  .hyp-card .hyp-text {
+    color: #999;
+  }
+  .hyp-card .capture-btn {
+    background: none;
+    border: 1px solid #555;
+    color: #777;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 10px;
+    margin-top: 4px;
+    transition: all 0.15s;
+  }
+  .hyp-card .capture-btn:hover { border-color: #4a9; color: #4a9; }
+  .hyp-card.validated {
+    border: 1px solid #2a4a3a;
+    border-left: 3px solid #4a9;
+  }
+  .hyp-card.validated .hyp-text { color: #8a8; }
+  .hyp-card.validated .hyp-label::before { content: '✓ '; color: #4a9; }
+  .hyp-card.capturing {
+    border-color: #4a9;
+    box-shadow: 0 0 8px rgba(68,170,153,0.2);
+  }
+
+  /* Journal (validated hypotheses) */
+  #journal-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .journal-entry {
+    background: #151525;
+    border: 1px solid #2a2a4a;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #8a8;
+    line-height: 1.4;
+  }
+  .journal-entry.pending { color: #666; border-style: dashed; }
+
+  #time-controls {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    padding: 8px;
+    border-top: 1px solid #1a1a2a;
+  }
+  .time-btn {
+    background: #151525;
+    border: 1px solid #2a2a4a;
+    color: #888;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .time-btn:hover { color: #ddd; border-color: #4a9; }
+  .time-btn.active { color: #4a9; border-color: #4a9; }
+</style>
+</head>
+<body>
+
+<div id="header">Terrarium</div>
+
+<div id="game-area">
+  <canvas id="canvas"></canvas>
+  <div id="sidebar">
+    <div>
+      <h3>Tools</h3>
+      <button class="tool-btn active" data-tool="observe">👁 Observe</button>
+      <button class="tool-btn" data-tool="food">🌿 Drop Food</button>
+      <button class="tool-btn" data-tool="move">✋ Move Creature</button>
+      <button class="tool-btn" id="lock-btn" data-tool="lock" style="display:none">📌 Locked: <span id="lock-name">—</span></button>
+    </div>
+    <div>
+      <h3>Selected</h3>
+      <div class="creature-info" id="creature-info">
+        <div class="detail">Hover over a creature to observe.</div>
+      </div>
+    </div>
+    <div class="hypothesis-section">
+      <h3>Hypothesis</h3>
+      <div class="hypothesis-counter" id="hyp-counter">Validated: 0/?</div>
+      <div class="hyp-builder">
+        <select id="hyp-subject">
+          <option value="">Subject...</option>
+          <option value="capra">Capra</option>
+          <option value="lucent">Lucent</option>
+          <option value="any">Any creature</option>
+        </select>
+        <select id="hyp-category">
+          <option value="">Category...</option>
+          <option value="movement">Movement</option>
+          <option value="feeding">Feeding</option>
+          <option value="social">Social</option>
+          <option value="energy">Energy</option>
+          <option value="rest">Rest</option>
+        </select>
+        <select id="hyp-behavior">
+          <option value="">Behavior...</option>
+        </select>
+        <button class="hyp-propose-btn" id="hyp-propose">Propose</button>
+      </div>
+      <div id="hyp-cards"></div>
+    </div>
+    <div>
+      <h3>Journal</h3>
+      <div id="journal-entries">
+        <div class="journal-entry pending">Construct a hypothesis to begin.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="time-controls">
+  <button class="time-btn" data-speed="0">⏸</button>
+  <button class="time-btn active" data-speed="1">▶</button>
+  <button class="time-btn" data-speed="3">▶▶</button>
+  <button class="time-btn" data-speed="8">▶▶▶</button>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────
+const TERRARIUM_MARGIN = 20;
+const CREATURE_RADIUS = 16;
+const FOOD_RADIUS = 6;
+const FOOD_SPAWN_COUNT = 5;
+const MAX_FOOD = 30;
+
+const SPECIES = {
+  capra: {
+    name: 'Capra',
+    color: '#e8705a',
+    colorDark: '#a04838',
+    speed: 1.8,
+    perceptionRange: 120,
+    baseHunger: 0.0002,
+    sociability: 0.3,
+    fearRadius: 80,
+  },
+  lucent: {
+    name: 'Lucent',
+    color: '#5aade8',
+    colorDark: '#3878a0',
+    speed: 1.0,
+    perceptionRange: 150,
+    baseHunger: 0.00015,
+    sociability: 0.7,
+    fearRadius: 0,
+  }
+};
+
+// ── Hypothesis Behaviors ────────────────────────────────────────────
+const BEHAVIORS = {
+  movement: [
+    { id: 'wander', text: 'Wanders randomly', check: (c) => c.state === 'wander' },
+    { id: 'flee_fast', text: 'Flees from fast movement', check: (c) => c.state === 'flee' && c.species === 'capra' },
+    { id: 'move_perceived', text: 'Moves toward perceived objects', check: (c) => c.state === 'seek_food' },
+  ],
+  feeding: [
+    { id: 'seek_hungry', text: 'Seeks food when hungry', check: (c) => c.state === 'seek_food' && c.hunger > 0.6 },
+    { id: 'eat_reduces', text: 'Eats to reduce hunger', check: (c) => c.state === 'wander' && (tickCount - c.lastAte) < 15 },
+    { id: 'stop_after_eat', text: 'Stops seeking after eating', check: (c) => c.state === 'wander' && (tickCount - c.lastAte) < 25 },
+  ],
+  social: [
+    { id: 'seek_same', text: 'Seeks same species', check: (c) => c.state === 'socialize' },
+    { id: 'ignore_same', text: 'Ignores same species', check: (c) => c.species === 'capra' && c.state === 'wander' },
+    { id: 'flee_other', text: 'Flees from other species', check: (c) => c.state === 'flee' },
+  ],
+  energy: [
+    { id: 'slow_tired', text: 'Slows down when tired', check: (c) => c.energy < 0.4 && c.state === 'wander' },
+    { id: 'rest_exhausted', text: 'Stops to rest when exhausted', check: (c) => c.state === 'rest' },
+    { id: 'recover_rest', text: 'Recovers energy while resting', check: (c) => c.state === 'rest' },
+  ],
+  rest: [
+    { id: 'rest_low', text: 'Rests when energy is low', check: (c) => c.state === 'rest' && c.energy < 0.4 },
+    { id: 'wake_high', text: 'Wakes when energy is high', check: (c) => c.wasResting && c.state === 'wander' && c.energy > 0.6 },
+    { id: 'no_rest_flee', text: 'Cannot rest while threatened', check: (c) => c.state === 'flee' },
+  ],
+};
+
+// Total discoverable behaviors count
+const TOTAL_BEHAVIORS = Object.values(BEHAVIORS).reduce((sum, arr) => sum + arr.length, 0);
+
+// ── State ───────────────────────────────────────────────────────────
+let creatures = [];
+let foods = [];
+let nextId = 1;
+let currentTool = 'observe';
+let timeSpeed = 1;
+let selectedCreature = null;
+let dragCreature = null;
+let hoveredCreature = null;
+let lockedCreature = null;
+let tickCount = 0;
+
+// Hypothesis state
+let hypotheses = []; // { id, subject, category, behaviorId, behaviorText, validated, capturing }
+let activeCaptureId = null;
+let nextHypId = 1;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ── Resize ──────────────────────────────────────────────────────────
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width - 240;
+  canvas.height = rect.height;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Helpers ─────────────────────────────────────────────────────────
+function seededRand(seed) {
+  let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function dist(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function randRange(lo, hi) { return lo + Math.random() * (hi - lo); }
+
+function bounded(x, y) {
+  return {
+    x: clamp(x, TERRARIUM_MARGIN + CREATURE_RADIUS, canvas.width - TERRARIUM_MARGIN - CREATURE_RADIUS),
+    y: clamp(y, TERRARIUM_MARGIN + CREATURE_RADIUS, canvas.height - TERRARIUM_MARGIN - CREATURE_RADIUS)
+  };
+}
+
+// ── Creature Factory ────────────────────────────────────────────────
+function createCreature(species, x, y) {
+  const spec = SPECIES[species];
+  return {
+    id: nextId++,
+    species,
+    name: spec.name + ' ' + nextId,
+    x, y,
+    vx: 0, vy: 0,
+    targetVx: 0, targetVy: 0,
+    hunger: randRange(0.1, 0.3),
+    energy: randRange(0.7, 1.0),
+    personality: {
+      speedMod: randRange(0.8, 1.2),
+      hungerMod: randRange(0.8, 1.2),
+      socialMod: randRange(0.6, 1.4),
+    },
+    state: 'wander',
+    stateTimer: 0,
+    target: null,
+    trail: [],
+    lastAte: 0,
+    wasResting: false,
+    observations: { fledFrom: 0, ate: 0, socialized: 0 },
+  };
+}
+
+function spawnInitialCreatures() {
+  const w = canvas.width - TERRARIUM_MARGIN * 2;
+  const h = canvas.height - TERRARIUM_MARGIN * 2;
+  for (let i = 0; i < 4; i++) {
+    const pos = bounded(TERRARIUM_MARGIN + randRange(40, w - 40), TERRARIUM_MARGIN + randRange(40, h - 40));
+    creatures.push(createCreature('capra', pos.x, pos.y));
+  }
+  for (let i = 0; i < 3; i++) {
+    const pos = bounded(TERRARIUM_MARGIN + randRange(40, w - 40), TERRARIUM_MARGIN + randRange(40, h - 40));
+    creatures.push(createCreature('lucent', pos.x, pos.y));
+  }
+}
+
+// ── Food ────────────────────────────────────────────────────────────
+function spawnFood(x, y) {
+  foods.push({ x, y, amount: 1.0, age: 0 });
+}
+
+function spawnScatteredFood(count) {
+  const w = canvas.width - TERRARIUM_MARGIN * 2;
+  const h = canvas.height - TERRARIUM_MARGIN * 2;
+  for (let i = 0; i < count; i++) {
+    spawnFood(
+      TERRARIUM_MARGIN + randRange(20, w - 20),
+      TERRARIUM_MARGIN + randRange(20, h - 20)
+    );
+  }
+}
+
+// ── AI / Behavior ───────────────────────────────────────────────────
+function updateCreature(c, dt) {
+  const spec = SPECIES[c.species];
+  const speed = spec.speed * c.personality.speedMod;
+  const hungerRate = spec.baseHunger * c.personality.hungerMod;
+  const perception = spec.perceptionRange;
+
+  c.hunger = Math.min(1, c.hunger + hungerRate * dt);
+
+  const currentSpeed = Math.sqrt(c.vx * c.vx + c.vy * c.vy);
+  c.energy = Math.max(0, c.energy - 0.0003 * dt - currentSpeed * 0.0001 * dt);
+
+  if (tickCount % 3 === 0) {
+    c.trail.push({ x: c.x, y: c.y });
+    if (c.trail.length > 20) c.trail.shift();
+  }
+
+  // Track wasResting for "Wakes when energy is high" hypothesis
+  if (c.state === 'rest') c.wasResting = true;
+  if (c.state !== 'rest' && c.state !== 'wander') c.wasResting = false;
+  // Clear wasResting after a bit of wandering
+  if (c.wasResting && c.state === 'wander' && (tickCount - (c.restEndTick || 0)) > 60) c.wasResting = false;
+
+  c.stateTimer -= dt;
+
+  // ── Flee (Capra only) ──
+  if (spec.fearRadius > 0 && c.species === 'capra') {
+    const nearbyLucent = creatures.filter(o =>
+      o.id !== c.id && o.species === 'lucent' && dist(c, o) < spec.fearRadius * c.personality.socialMod
+    );
+    const threats = nearbyLucent.filter(o => {
+      const os = Math.sqrt(o.vx * o.vx + o.vy * o.vy);
+      return os > spec.speed * 0.8;
+    });
+    if (threats.length > 0 && !c.fleeCooldown) {
+      c.state = 'flee';
+      const threat = threats.reduce((a, b) => dist(c, a) < dist(c, b) ? a : b);
+      const dx = c.x - threat.x;
+      const dy = c.y - threat.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const fleeVx = (dx / d) * speed * 1.2;
+      const fleeVy = (dy / d) * speed * 1.2;
+      c.targetVx = fleeVx;
+      c.targetVy = fleeVy;
+      c.vx += (fleeVx - c.vx) * 0.03 * dt;
+      c.vy += (fleeVy - c.vy) * 0.03 * dt;
+      c.observations.fledFrom++;
+      c.fleeCooldown = 30;
+      applyVelocity(c, dt);
+      return;
+    }
+    if (c.fleeCooldown > 0) c.fleeCooldown -= dt;
+    if (c.state === 'flee' && threats.length === 0) {
+      c.state = 'wander';
+      c.stateTimer = randRange(100, 300);
+      const angle = Math.random() * Math.PI * 2;
+      c.targetVx = Math.cos(angle) * speed * 0.3;
+      c.targetVy = Math.sin(angle) * speed * 0.3;
+    }
+  }
+
+  // ── Seek food ──
+  if (c.hunger > 0.6) {
+    const nearFood = foods.filter(f => f.amount > 0.1 && dist(c, f) < perception);
+    if (nearFood.length > 0) {
+      c.state = 'seek_food';
+      const food = nearFood.reduce((a, b) => dist(c, a) < dist(c, b) ? a : b);
+      const dx = food.x - c.x;
+      const dy = food.y - c.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const seekVx = (dx / d) * speed;
+      const seekVy = (dy / d) * speed;
+      c.vx += (seekVx - c.vx) * 0.04 * dt;
+      c.vy += (seekVy - c.vy) * 0.04 * dt;
+      if (d < CREATURE_RADIUS + FOOD_RADIUS) {
+        const eaten = Math.min(food.amount, 0.5);
+        food.amount -= eaten;
+        c.hunger = Math.max(0, c.hunger - eaten * 3);
+        c.energy = Math.min(1, c.energy + eaten * 0.5);
+        c.lastAte = tickCount;
+        c.observations.ate++;
+        c.state = 'wander';
+        c.stateTimer = randRange(40, 100);
+        const angle = Math.random() * Math.PI * 2;
+        c.targetVx = Math.cos(angle) * speed * 0.4;
+        c.targetVy = Math.sin(angle) * speed * 0.4;
+      }
+      applyVelocity(c, dt);
+      return;
+    }
+  }
+
+  // ── Rest ──
+  const restProb = 1 / (1 + Math.exp(-0.5 * (25 - c.energy * 100)));
+  if (c.state === 'rest' || (Math.random() < restProb && c.energy < 0.4 && c.state !== 'flee')) {
+    c.state = 'rest';
+    c.wasResting = true;
+    c.vx *= 0.97;
+    c.vy *= 0.97;
+    c.energy += 0.0015 * dt;
+    const wakeProb = 1 / (1 + Math.exp(-0.3 * (c.energy * 100 - 75)));
+    if (c.energy > 0.5 && Math.random() < wakeProb * 0.02) {
+      c.state = 'wander';
+      c.restEndTick = tickCount;
+      c.stateTimer = randRange(200, 500);
+      const angle = Math.random() * Math.PI * 2;
+      c.targetVx = Math.cos(angle) * speed * 0.6;
+      c.targetVy = Math.sin(angle) * speed * 0.6;
+    }
+    applyVelocity(c, dt);
+    return;
+  }
+
+  // ── Socialize (Lucent) ──
+  if (spec.sociability > 0.5 && Math.random() < spec.sociability * c.personality.socialMod * 0.01) {
+    const friend = creatures.find(o =>
+      o.id !== c.id && o.species === c.species && dist(c, o) < perception
+    );
+    if (friend) {
+      c.state = 'socialize';
+      const dx = friend.x - c.x;
+      const dy = friend.y - c.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const socVx = (dx / d) * speed * 0.5;
+      const socVy = (dy / d) * speed * 0.5;
+      c.vx += (socVx - c.vx) * 0.03 * dt;
+      c.vy += (socVy - c.vy) * 0.03 * dt;
+      c.observations.socialized++;
+      applyVelocity(c, dt);
+      return;
+    }
+  }
+
+  // ── Wander ──
+  if (c.stateTimer <= 0 || (c.state !== 'wander' && c.state !== 'rest' && c.state !== 'socialize' && c.state !== 'seek_food' && c.state !== 'flee')) {
+    c.state = 'wander';
+    c.stateTimer = randRange(200, 500);
+    const angle = Math.random() * Math.PI * 2;
+    c.targetVx = Math.cos(angle) * speed * 0.6;
+    c.targetVy = Math.sin(angle) * speed * 0.6;
+  }
+
+  const steerRate = 0.015 * dt;
+  c.vx += (c.targetVx - c.vx) * steerRate;
+  c.vy += (c.targetVy - c.vy) * steerRate;
+
+  applyVelocity(c, dt);
+}
+
+function applyVelocity(c, dt) {
+  const pos = bounded(c.x + c.vx * dt, c.y + c.vy * dt);
+  c.x = pos.x;
+  c.y = pos.y;
+  if (c.x <= TERRARIUM_MARGIN + CREATURE_RADIUS || c.x >= canvas.width - TERRARIUM_MARGIN - CREATURE_RADIUS) c.vx *= -1;
+  if (c.y <= TERRARIUM_MARGIN + CREATURE_RADIUS || c.y >= canvas.height - TERRARIUM_MARGIN - CREATURE_RADIUS) c.vy *= -1;
+}
+
+// ── Hypothesis UI ───────────────────────────────────────────────────
+const hypSubject = document.getElementById('hyp-subject');
+const hypCategory = document.getElementById('hyp-category');
+const hypBehavior = document.getElementById('hyp-behavior');
+const hypPropose = document.getElementById('hyp-propose');
+const hypCards = document.getElementById('hyp-cards');
+const hypCounter = document.getElementById('hyp-counter');
+
+function updateBehaviorDropdown() {
+  const cat = hypCategory.value;
+  hypBehavior.innerHTML = '<option value="">Behavior...</option>';
+  if (cat && BEHAVIORS[cat]) {
+    BEHAVIORS[cat].forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = b.text;
+      hypBehavior.appendChild(opt);
+    });
+  }
+}
+
+hypCategory.addEventListener('change', updateBehaviorDropdown);
+
+hypPropose.addEventListener('click', () => {
+  const subject = hypSubject.value;
+  const category = hypCategory.value;
+  const behaviorId = hypBehavior.value;
+  if (!subject || !category || !behaviorId) return;
+
+  const behavior = BEHAVIORS[category].find(b => b.id === behaviorId);
+  if (!behavior) return;
+
+  // Check duplicate
+  const exists = hypotheses.some(h => h.subject === subject && h.behaviorId === behaviorId);
+  if (exists) return;
+
+  const subjectLabel = subject === 'any' ? 'Any creature' : SPECIES[subject].name;
+  const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
+
+  const hyp = {
+    id: nextHypId++,
+    subject,
+    category,
+    behaviorId,
+    behaviorText: behavior.text,
+    subjectLabel,
+    categoryLabel,
+    validated: false,
+    capturing: false,
+  };
+  hypotheses.push(hyp);
+  renderHypothesisCards();
+
+  // Reset builder
+  hypSubject.value = '';
+  hypCategory.value = '';
+  hypBehavior.innerHTML = '<option value="">Behavior...</option>';
+});
+
+function renderHypothesisCards() {
+  hypCards.innerHTML = '';
+  const validated = hypotheses.filter(h => h.validated).length;
+  hypCounter.textContent = `Validated: ${validated}/${hypotheses.length}`;
+
+  hypotheses.forEach(hyp => {
+    const card = document.createElement('div');
+    card.className = 'hyp-card' + (hyp.validated ? ' validated' : '') + (hyp.capturing ? ' capturing' : '');
+    card.id = 'hyp-card-' + hyp.id;
+
+    if (hyp.validated) {
+      card.innerHTML = `
+        <div class="hyp-label">${hyp.subjectLabel} → ${hyp.categoryLabel}</div>
+        <div class="hyp-text">${hyp.behaviorText}</div>
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="hyp-label">${hyp.subjectLabel} → ${hyp.categoryLabel}</div>
+        <div class="hyp-text">${hyp.behaviorText}</div>
+        <button class="capture-btn" data-hyp="${hyp.id}">📷 Capture</button>
+      `;
+    }
+    hypCards.appendChild(card);
+  });
+
+  // Bind capture buttons
+  document.querySelectorAll('.capture-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const hypId = parseInt(btn.dataset.hyp);
+      startCapture(hypId);
+    });
+  });
+}
+
+function startCapture(hypId) {
+  // Cancel any existing capture
+  hypotheses.forEach(h => h.capturing = false);
+  activeCaptureId = hypId;
+  const hyp = hypotheses.find(h => h.id === hypId);
+  if (hyp) hyp.capturing = true;
+  canvas.style.cursor = 'cell';
+  renderHypothesisCards();
+}
+
+function cancelCapture() {
+  hypotheses.forEach(h => h.capturing = false);
+  activeCaptureId = null;
+  canvas.style.cursor = 'crosshair';
+  renderHypothesisCards();
+}
+
+function attemptCapture(mx, my) {
+  const hyp = hypotheses.find(h => h.id === activeCaptureId);
+  if (!hyp || hyp.validated) { cancelCapture(); return; }
+
+  const behavior = BEHAVIORS[hyp.category].find(b => b.id === hyp.behaviorId);
+  if (!behavior) { cancelCapture(); return; }
+
+  const FRAME_HALF = 75; // 150x150 frame
+  const frameLeft = mx - FRAME_HALF;
+  const frameRight = mx + FRAME_HALF;
+  const frameTop = my - FRAME_HALF;
+  const frameBottom = my + FRAME_HALF;
+
+  // Find matching creatures in frame
+  const matched = creatures.find(c => {
+    // Check creature is in frame
+    if (c.x < frameLeft || c.x > frameRight || c.y < frameTop || c.y > frameBottom) return false;
+    // Check subject match
+    if (hyp.subject !== 'any' && c.species !== hyp.subject) return false;
+    // Check behavior condition
+    return behavior.check(c);
+  });
+
+  if (matched) {
+    hyp.validated = true;
+    hyp.capturing = false;
+    activeCaptureId = null;
+    canvas.style.cursor = 'crosshair';
+    addJournalEntry(`${hyp.subjectLabel}: ${hyp.behaviorText}`);
+    renderHypothesisCards();
+    // Flash green
+    captureFlash = { color: '#4a9', alpha: 0.4, x: mx, y: my, ttl: 20 };
+  } else {
+    // Flash red
+    captureFlash = { color: '#a44', alpha: 0.3, x: mx, y: my, ttl: 15 };
+  }
+}
+
+let captureFlash = null;
+
+// ── Journal ─────────────────────────────────────────────────────────
+function addJournalEntry(text) {
+  const container = document.getElementById('journal-entries');
+  const pending = container.querySelector('.pending');
+  if (pending) pending.remove();
+
+  const el = document.createElement('div');
+  el.className = 'journal-entry';
+  el.textContent = text;
+  container.appendChild(el);
+}
+
+// ── Rendering ───────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = '#080810';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Ground
+  const gx = TERRARIUM_MARGIN;
+  const gy = TERRARIUM_MARGIN;
+  const gw = canvas.width - TERRARIUM_MARGIN * 2;
+  const gh = canvas.height - TERRARIUM_MARGIN * 2;
+
+  const soilGrad = ctx.createRadialGradient(gx + gw/2, gy + gh/2, 50, gx + gw/2, gy + gh/2, gw * 0.7);
+  soilGrad.addColorStop(0, '#14120e');
+  soilGrad.addColorStop(0.6, '#100e0a');
+  soilGrad.addColorStop(1, '#0a0908');
+  ctx.fillStyle = soilGrad;
+  ctx.fillRect(gx, gy, gw, gh);
+
+  // Moss
+  ctx.globalAlpha = 0.06;
+  for (let i = 0; i < 30; i++) {
+    const px = gx + seededRand(i * 7 + 1) * gw;
+    const py = gy + seededRand(i * 13 + 3) * gh;
+    const pr = 15 + seededRand(i * 17 + 5) * 40;
+    const hue = 100 + seededRand(i * 23 + 7) * 40;
+    ctx.fillStyle = `hsl(${hue}, 30%, 18%)`;
+    ctx.beginPath();
+    ctx.ellipse(px, py, pr, pr * (0.6 + seededRand(i * 31) * 0.4), seededRand(i * 37) * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Pebbles
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < 50; i++) {
+    const px = gx + seededRand(i * 41 + 11) * gw;
+    const py = gy + seededRand(i * 43 + 13) * gh;
+    const pr = 1 + seededRand(i * 47 + 17) * 2.5;
+    ctx.fillStyle = seededRand(i * 53) > 0.5 ? '#2a2825' : '#1e1c18';
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Border
+  ctx.strokeStyle = '#1e1e2e';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(gx, gy, gw, gh);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(gx, gy + gh);
+  ctx.lineTo(gx, gy);
+  ctx.lineTo(gx + gw, gy);
+  ctx.stroke();
+  ctx.globalAlpha = 0.02;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.ellipse(gx + gw * 0.3, gy + 30, gw * 0.25, 20, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Food
+  for (const f of foods) {
+    if (f.amount <= 0.1) continue;
+    ctx.globalAlpha = f.amount;
+    ctx.fillStyle = '#4a8';
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, FOOD_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Trails
+  for (const c of creatures) {
+    const spec = SPECIES[c.species];
+    if (c.trail.length < 2) continue;
+    ctx.strokeStyle = spec.color;
+    ctx.globalAlpha = 0.1;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(c.trail[0].x, c.trail[0].y);
+    for (let i = 1; i < c.trail.length; i++) ctx.lineTo(c.trail[i].x, c.trail[i].y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Creatures
+  for (const c of creatures) {
+    const spec = SPECIES[c.species];
+    const isHovered = hoveredCreature && hoveredCreature.id === c.id;
+    const isLocked = lockedCreature && lockedCreature.id === c.id;
+
+    if (isHovered || isLocked) {
+      ctx.strokeStyle = spec.color;
+      ctx.globalAlpha = 0.08;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, spec.perceptionRange, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      if (spec.fearRadius > 0) {
+        ctx.strokeStyle = '#e55';
+        ctx.globalAlpha = 0.1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, spec.fearRadius * c.personality.socialMod, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Glow
+    ctx.globalAlpha = 0.15;
+    const glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, CREATURE_RADIUS * 2.5);
+    glow.addColorStop(0, spec.color);
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, CREATURE_RADIUS * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Body
+    if (c.species === 'capra') {
+      const angle = Math.atan2(c.vy, c.vx);
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(angle);
+      ctx.fillStyle = spec.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, CREATURE_RADIUS * 1.2, CREATURE_RADIUS * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = spec.colorDark;
+      ctx.beginPath();
+      ctx.ellipse(-1, 0, CREATURE_RADIUS * 0.5, CREATURE_RADIUS * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(CREATURE_RADIUS * 0.5, -CREATURE_RADIUS * 0.25, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(CREATURE_RADIUS * 0.6, -CREATURE_RADIUS * 0.25, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = spec.color;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CREATURE_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+      const pulse = 0.5 + Math.sin(tickCount * 0.05 + c.id) * 0.3;
+      ctx.globalAlpha = pulse * 0.5;
+      ctx.fillStyle = '#8ad4ff';
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CREATURE_RADIUS * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(c.x - 2.5, c.y - 2, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(c.x + 2.5, c.y - 2, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // State rings
+    if (c.state === 'flee') {
+      ctx.strokeStyle = '#f44';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CREATURE_RADIUS + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (c.state === 'seek_food') {
+      ctx.strokeStyle = '#ff8';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CREATURE_RADIUS + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (c.state === 'rest') {
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = spec.color;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CREATURE_RADIUS + 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Hover/lock highlight
+    if (isHovered || isLocked) {
+      ctx.strokeStyle = isLocked ? '#4a9' : '#fff';
+      ctx.lineWidth = isLocked ? 2 : 1;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CREATURE_RADIUS + 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Name
+    if (isHovered || isLocked) {
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(c.name, c.x, c.y - CREATURE_RADIUS - 8);
+    }
+  }
+
+  // Drag line
+  if (dragCreature) {
+    ctx.strokeStyle = '#fff';
+    ctx.globalAlpha = 0.3;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(dragCreature.x, dragCreature.y);
+    ctx.lineTo(dragTargetX, dragTargetY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  // Capture frame
+  if (activeCaptureId !== null) {
+    const FRAME_HALF = 75;
+    const fx = mouseX - FRAME_HALF;
+    const fy = mouseY - FRAME_HALF;
+
+    ctx.strokeStyle = '#4a9';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(fx, fy, FRAME_HALF * 2, FRAME_HALF * 2);
+    ctx.setLineDash([]);
+
+    // Subtle fill
+    ctx.fillStyle = 'rgba(68,170,153,0.04)';
+    ctx.fillRect(fx, fy, FRAME_HALF * 2, FRAME_HALF * 2);
+
+    // Corner markers
+    const cm = 8;
+    ctx.strokeStyle = '#4a9';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    // Top-left
+    ctx.beginPath(); ctx.moveTo(fx, fy + cm); ctx.lineTo(fx, fy); ctx.lineTo(fx + cm, fy); ctx.stroke();
+    // Top-right
+    ctx.beginPath(); ctx.moveTo(fx + FRAME_HALF*2 - cm, fy); ctx.lineTo(fx + FRAME_HALF*2, fy); ctx.lineTo(fx + FRAME_HALF*2, fy + cm); ctx.stroke();
+    // Bottom-left
+    ctx.beginPath(); ctx.moveTo(fx, fy + FRAME_HALF*2 - cm); ctx.lineTo(fx, fy + FRAME_HALF*2); ctx.lineTo(fx + cm, fy + FRAME_HALF*2); ctx.stroke();
+    // Bottom-right
+    ctx.beginPath(); ctx.moveTo(fx + FRAME_HALF*2 - cm, fy + FRAME_HALF*2); ctx.lineTo(fx + FRAME_HALF*2, fy + FRAME_HALF*2); ctx.lineTo(fx + FRAME_HALF*2, fy + FRAME_HALF*2 - cm); ctx.stroke();
+  }
+
+  // Capture flash
+  if (captureFlash) {
+    ctx.globalAlpha = captureFlash.alpha;
+    ctx.fillStyle = captureFlash.color;
+    ctx.beginPath();
+    ctx.arc(captureFlash.x, captureFlash.y, 60, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    captureFlash.ttl--;
+    captureFlash.alpha -= 0.02;
+    if (captureFlash.ttl <= 0) captureFlash = null;
+  }
+
+  // Tick
+  ctx.fillStyle = '#333';
+  ctx.font = '10px Courier New';
+  ctx.textAlign = 'right';
+  ctx.fillText(`t: ${tickCount}`, canvas.width - TERRARIUM_MARGIN, canvas.height - TERRARIUM_MARGIN + 14);
+}
+
+// ── Mouse ───────────────────────────────────────────────────────────
+let mouseX = 0, mouseY = 0;
+let dragTargetX = 0, dragTargetY = 0;
+
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function creatureAtPos(x, y) {
+  for (const c of creatures) {
+    if (dist({ x, y }, c) < CREATURE_RADIUS + 4) return c;
+  }
+  return null;
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  const pos = getMousePos(e);
+  mouseX = pos.x;
+  mouseY = pos.y;
+
+  if (dragCreature) {
+    dragTargetX = pos.x;
+    dragTargetY = pos.y;
+  }
+
+  hoveredCreature = creatureAtPos(pos.x, pos.y);
+  updateSidebar();
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  const pos = getMousePos(e);
+
+  // If in capture mode, attempt capture on click
+  if (activeCaptureId !== null) {
+    attemptCapture(pos.x, pos.y);
+    return;
+  }
+
+  const creature = creatureAtPos(pos.x, pos.y);
+
+  if (lockedCreature && creature && lockedCreature.id === creature.id) {
+    lockedCreature = null;
+    document.getElementById('lock-btn').style.display = 'none';
+    setToolActive('observe');
+    updateSidebar();
+    return;
+  }
+
+  if (lockedCreature && !creature) {
+    lockedCreature = null;
+    document.getElementById('lock-btn').style.display = 'none';
+    setToolActive('observe');
+    updateSidebar();
+    return;
+  }
+
+  if (currentTool === 'observe' || currentTool === 'lock') {
+    if (creature) {
+      selectedCreature = creature;
+      lockedCreature = creature;
+      document.getElementById('lock-btn').style.display = 'block';
+      document.getElementById('lock-name').textContent = creature.name;
+      setToolActive('lock');
+    }
+    updateSidebar();
+  } else if (currentTool === 'food') {
+    if (pos.x > TERRARIUM_MARGIN && pos.x < canvas.width - TERRARIUM_MARGIN &&
+        pos.y > TERRARIUM_MARGIN && pos.y < canvas.height - TERRARIUM_MARGIN) {
+      spawnFood(pos.x, pos.y);
+    }
+  } else if (currentTool === 'move') {
+    if (creature) {
+      dragCreature = creature;
+      dragTargetX = pos.x;
+      dragTargetY = pos.y;
+    }
+  }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (dragCreature) {
+    const pos = getMousePos(e);
+    const bounded_pos = bounded(pos.x, pos.y);
+    dragCreature.x = bounded_pos.x;
+    dragCreature.y = bounded_pos.y;
+    dragCreature.vx = 0;
+    dragCreature.vy = 0;
+    dragCreature = null;
+  }
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  // Right-click cancels capture mode
+  if (activeCaptureId !== null) {
+    cancelCapture();
+    return;
+  }
+  const pos = getMousePos(e);
+  const creature = creatureAtPos(pos.x, pos.y);
+  if (creature) {
+    creatures = creatures.filter(c2 => c2.id !== creature.id);
+    if (selectedCreature && selectedCreature.id === creature.id) selectedCreature = null;
+    if (hoveredCreature && hoveredCreature.id === creature.id) hoveredCreature = null;
+    if (lockedCreature && lockedCreature.id === creature.id) {
+      lockedCreature = null;
+      document.getElementById('lock-btn').style.display = 'none';
+      setToolActive('observe');
+    }
+    updateSidebar();
+  }
+});
+
+// Escape cancels capture
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && activeCaptureId !== null) {
+    cancelCapture();
+  }
+});
+
+// ── Sidebar ─────────────────────────────────────────────────────────
+function updateSidebar() {
+  const c = lockedCreature || hoveredCreature || selectedCreature;
+  const info = document.getElementById('creature-info');
+
+  if (!c) {
+    info.innerHTML = '<div class="detail">Hover over a creature to observe.</div>';
+    return;
+  }
+
+  const spec = SPECIES[c.species];
+  const speed = Math.sqrt(c.vx * c.vx + c.vy * c.vy).toFixed(2);
+  const hungerVal = Math.floor((1 - c.hunger) * 10);
+  const energyBar = Math.floor(c.energy * 10);
+  const hungerBar = '█'.repeat(hungerVal) + '░'.repeat(10 - hungerVal);
+  const energyBarStr = '█'.repeat(energyBar) + '░'.repeat(10 - energyBar);
+
+  info.innerHTML = `
+    <div class="name" style="color:${spec.color}">${c.name}</div>
+    <div class="detail">
+      State: ${c.state}<br>
+      Speed: ${speed}<br>
+      Satiety: ${((1 - c.hunger) * 100).toFixed(0)}% ${hungerBar}<br>
+      Energy: ${(c.energy * 100).toFixed(0)}% ${energyBarStr}<br>
+    </div>
+  `;
+}
+
+// ── Tool buttons ────────────────────────────────────────────────────
+function setToolActive(tool) {
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
+  if (btn) btn.classList.add('active');
+  currentTool = tool;
+}
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setToolActive(btn.dataset.tool);
+  });
+});
+
+// ── Time controls ───────────────────────────────────────────────────
+document.querySelectorAll('.time-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    timeSpeed = parseInt(btn.dataset.speed);
+  });
+});
+
+// ── Game Loop ───────────────────────────────────────────────────────
+function tick() {
+  if (timeSpeed > 0) {
+    for (let i = 0; i < timeSpeed; i++) {
+      tickCount++;
+      for (const c of creatures) {
+        if (dragCreature && dragCreature.id === c.id) continue;
+        updateCreature(c, 1);
+      }
+      foods = foods.filter(f => f.amount > 0.1);
+      if (tickCount % 200 === 0) spawnScatteredFood(2);
+      // Fade oldest food when at cap
+      if (foods.length > MAX_FOOD) {
+        foods.sort((a, b) => a.age - b.age);
+        while (foods.length > MAX_FOOD) {
+          foods[0].amount -= 0.15;
+          if (foods[0].amount <= 0.1) foods.shift();
+          else break;
+        }
+      }
+      // Age all food
+      for (const f of foods) f.age++;
+    }
+  }
+
+  updateSidebar();
+  draw();
+  requestAnimationFrame(tick);
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+spawnInitialCreatures();
+spawnScatteredFood(FOOD_SPAWN_COUNT);
+tick();
+</script>
+</body>
+</html>
