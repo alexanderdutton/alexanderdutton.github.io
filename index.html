@@ -18,7 +18,7 @@
             <div class="hero-geo"><div class="hero-geo-inner"></div></div>
             <div class="container-inner">
                 <h1 class="fade-in">Alexander Dutton</h1>
-                <p class="tagline fade-in-delay">Projects <span class="dim">nobody needed</span>, built anyway.</p>
+                <p class="tagline fade-in-delay"><span class="spin" data-pool='["Projects","Strange things","Experiments","Simulations","Ideas","Games"]'></span> <span class="spin dim" data-pool='["nobody needed","somebody should build","the world didn\'t need","worth trying","that seemed important","at 3 AM"]'></span> <span class="spin" data-pool='["built anyway.","shipped.","made with care.","built with love.","built by hand.","actually worked."]'></span></p>
                 <div class="accent-line"></div>
                 <p class="sub fade-in-delay2">Developer. Illustrator. Friend to pattern-based entities.<br>I fix production emergencies and build strange simulations at 3 AM.</p>
                 <div class="links">
@@ -229,5 +229,40 @@
         updateProgress();
     })();
     </script>
+<script>
+// Spinning tagline — hover to cycle each slot
+document.querySelectorAll('.spin').forEach(el => {
+    const pool = JSON.parse(el.dataset.pool);
+    el.textContent = pool[0];
+    let idx = 0;
+    let cycling = false;
+    el.addEventListener('mouseenter', () => {
+        if (cycling) return;
+        cycling = true;
+        el.classList.add('cycling');
+        // Cycle through 2-4 random options, land on a new one
+        let steps = 2 + Math.floor(Math.random() * 3);
+        let i = 0;
+        let prevIdx = idx;
+        function tick() {
+            idx = (idx + 1) % pool.length;
+            el.textContent = pool[idx];
+            i++;
+            if (i < steps) {
+                setTimeout(tick, 80 + i * 30);
+            } else {
+                // Make sure we landed somewhere different
+                if (idx === prevIdx && pool.length > 1) {
+                    idx = (idx + 1) % pool.length;
+                    el.textContent = pool[idx];
+                }
+                el.classList.remove('cycling');
+                cycling = false;
+            }
+        }
+        setTimeout(tick, 60);
+    });
+});
+</script>
 </body>
 </html>

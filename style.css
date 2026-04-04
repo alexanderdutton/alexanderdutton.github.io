@@ -434,3 +434,18 @@ button[type="submit"] {
     .hero { padding: 80px 0 60px; }
     .hero .tagline { font-size: 1.9rem; }
 }
+
+/* Spinning tagline slots */
+.spin {
+    display: inline-block;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.spin:hover {
+    opacity: 0.5;
+    transform: translateY(-2px);
+}
+.spin.cycling {
+    opacity: 0.3;
+    transform: translateY(-4px);
+}
