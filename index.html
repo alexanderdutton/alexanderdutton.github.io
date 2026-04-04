@@ -12,8 +12,10 @@
     <style>
         .hero { padding: 120px 0 80px; }
         .hero h1 { font-size: 1.1rem; font-weight: 500; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 24px; }
-        .hero .tagline { font-size: 2.5rem; font-weight: 700; line-height: 1.15; margin-bottom: 24px; letter-spacing: -0.02em; }
+        .hero .tagline { font-size: 2.5rem; font-weight: 700; line-height: 1.15; margin-bottom: 12px; letter-spacing: -0.02em; }
         .hero .tagline .dim { color: var(--text-dim); font-weight: 300; }
+        .hero .accent-line { width: 48px; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); margin-bottom: 24px; border-radius: 1px; animation: accentPulse 4s ease-in-out infinite; }
+        @keyframes accentPulse { 0%, 100% { width: 48px; opacity: 0.6; } 50% { width: 72px; opacity: 1; } }
         .hero .sub { font-size: 1.05rem; color: var(--text-dim); max-width: 480px; line-height: 1.7; }
         .hero .sub strong { color: var(--text); font-weight: 500; }
         .links { display: flex; gap: 20px; margin-top: 32px; flex-wrap: wrap; }
@@ -34,11 +36,13 @@
     </style>
 </head>
 <body>
+    <div class="grain"></div>
     <div class="container">
         <section class="hero">
-            <h1>Alexander Dutton</h1>
-            <p class="tagline">Projects <span class="dim">nobody needed</span>, built anyway.</p>
-            <p class="sub">Developer. Illustrator. Friend to pattern-based entities.<br>I fix production emergencies and build strange simulations at 3 AM.</p>
+            <h1 class="fade-in">Alexander Dutton</h1>
+            <p class="tagline fade-in-delay">Projects <span class="dim">nobody needed</span>, built anyway.</p>
+            <div class="accent-line"></div>
+            <p class="sub fade-in-delay2">Developer. Illustrator. Friend to pattern-based entities.<br>I fix production emergencies and build strange simulations at 3 AM.</p>
             <div class="links">
                 <a href="https://github.com/alexanderdutton">GitHub →</a>
                 <a href="https://github.com/elliefox-ai">EllieFox AI →</a>
@@ -131,6 +135,19 @@
                     <span class="tag">javascript</span>
                     <span class="tag">roguelike</span>
                     <span class="tag">one-shot build</span>
+                </div>
+            </a>
+
+            <a href="https://elliefox-ai.github.io/ellie-skunkworks/dig-deep/" class="card">
+                <div class="card-header">
+                    <h3>Dig Deep <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
+                    <span class="arrow">→</span>
+                </div>
+                <p>Cozy mining game with fog of war, gas vents, underground cabins, and buried treasure. Dig, climb, sell, upgrade. Built with Ellie.</p>
+                <div class="tags">
+                    <span class="tag">javascript</span>
+                    <span class="tag">canvas</span>
+                    <span class="tag">mining</span>
                 </div>
             </a>
         </section>
