@@ -440,6 +440,8 @@ button[type="submit"] {
     display: inline-block;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.15s;
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 .spin:hover {
     opacity: 0.5;
