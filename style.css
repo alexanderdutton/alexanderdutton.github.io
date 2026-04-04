@@ -442,6 +442,10 @@ button[type="submit"] {
     transition: opacity 0.15s, transform 0.15s;
     padding: 2px 6px;
     border-radius: 4px;
+    min-width: 160px;
+}
+.spin.dim {
+    min-width: 220px;
 }
 .spin:hover {
     opacity: 0.5;
