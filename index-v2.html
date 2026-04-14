@@ -181,13 +181,24 @@
             </div>
         </section>
 
-        <!-- FOOTER: Low-key, no form -->
+        <!-- FOOTER -->
         <footer class="footer">
             <hr class="divider">
             <div class="footer-inner">
                 <p class="footer-line">Need something fixed? Want to build something weird?</p>
-                <a href="mailto:hello@alexanderdutton.com" class="mailto">Say hello →</a>
                 <p class="footer-note">I respond fast. Especially to interesting problems.</p>
+                <form id="contact-form" action="https://formspree.io/f/xlglnvel" method="POST" style="margin-top:20px;">
+                    <div class="form-group">
+                        <input type="text" name="name" required placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <textarea name="message" required placeholder="What's on your mind?" rows="4"></textarea>
+                    </div>
+                    <button type="submit">Send</button>
+                </form>
                 <p class="footer-credit">Built with Ellie 🦊</p>
             </div>
         </footer>
