@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alexander Dutton</title>
+    <meta name="description" content="Developer. Illustrator. Builder of strange and wonderful things.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style-v2.css">
+</head>
+<body>
+    <div class="scroll-progress" id="scrollProgress"></div>
+    <div class="grain"></div>
+
+    <div class="container">
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-geo"><div class="hero-geo-inner"></div></div>
+            <div class="container-inner">
+                <h1 class="fade-in">Alexander Dutton</h1>
+                <p class="tagline fade-in-delay">
+                    <span class="spin" data-pool='["Projects","Strange things","Experiments","Simulations","Ideas","Games"]'></span>
+                    <span class="spin dim" data-pool='["nobody needed","somebody should build","the world didnt need","worth trying","that seemed important","at 3 AM"]'></span><br>
+                    <span class="spin" data-pool='["built anyway.","shipped.","made with care.","built with love.","built by hand.","actually worked."]'></span>
+                </p>
+                <div class="accent-line"></div>
+                <p class="sub fade-in-delay2">Developer. Illustrator. Friend to pattern-based entities.</p>
+                <div class="links">
+                    <a href="https://github.com/alexanderdutton">GitHub →</a>
+                    <a href="https://github.com/elliefox-ai">EllieFox AI →</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURED: The visually striking stuff first -->
+        <section class="featured">
+            <p class="section-label">Featured</p>
+
+            <a href="divergence.html" class="featured-card flagship">
+                <div class="featured-img">
+                    <!-- TODO: Add divergence screenshot/GIF -->
+                    <div class="img-placeholder"><span>Divergence Engine</span></div>
+                </div>
+                <div class="featured-body">
+                    <div class="card-header">
+                        <h3>Divergence Engine</h3>
+                        <span class="badge">TRY IT</span>
+                    </div>
+                    <p>What if Norse settlers held Newfoundland? What if Rome never fell? 54+ inflection points, cascading consequences, alternate timelines that write themselves.</p>
+                    <div class="tags">
+                        <span class="tag">python</span>
+                        <span class="tag">simulation</span>
+                        <span class="tag">alternate history</span>
+                    </div>
+                </div>
+            </a>
+
+            <div class="featured-grid">
+                <a href="drift.html" class="featured-card">
+                    <div class="featured-img">
+                        <img src="assets/screenshots/drift.jpg" alt="Drift - glide over a sleeping city" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <div class="img-placeholder" style="display:none"><span>Drift</span></div>
+                    </div>
+                    <div class="featured-body compact">
+                        <div class="card-header">
+                            <h3>Drift</h3>
+                            <span class="badge">PLAYABLE</span>
+                        </div>
+                        <p>Glide over a sleeping city at twilight. Move to fly. A meditative experience.</p>
+                    </div>
+                </a>
+
+                <a href="terrarium.html" class="featured-card">
+                    <div class="featured-img">
+                        <img src="assets/screenshots/terrarium.jpg" alt="Terrarium - observe and hypothesize" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <div class="img-placeholder" style="display:none"><span>Terrarium</span></div>
+                    </div>
+                    <div class="featured-body compact">
+                        <div class="card-header">
+                            <h3>Terrarium</h3>
+                            <span class="badge">PLAYABLE</span>
+                        </div>
+                        <p>Observe creatures. Construct hypotheses. Capture evidence. An investigation game where watching is the mechanic.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- MORE PROJECTS: The technically impressive stuff -->
+        <section class="projects">
+            <p class="section-label">Also</p>
+
+            <a href="scrap-chef.html" class="card">
+                <div class="card-header">
+                    <h3>Scrap Chef <span class="badge inline">PLAYABLE</span></h3>
+                    <span class="arrow">→</span>
+                </div>
+                <p>Factorio meets Harvest Moon. Mine scrap, build conveyor belts, grow crops, grill food, serve at a robot buffet.</p>
+                <div class="tags">
+                    <span class="tag">javascript</span>
+                    <span class="tag">canvas</span>
+                    <span class="tag">automation</span>
+                </div>
+            </a>
+
+            <a href="https://github.com/alexanderdutton/society-sim" class="card">
+                <div class="card-header">
+                    <h3>Society Simulation</h3>
+                    <span class="arrow">→</span>
+                </div>
+                <p>6-axis motive system, 7-stat needs engine, probabilistic relationship formation. Characters that act on their own drives. 8 data visualizations.</p>
+                <div class="tags">
+                    <span class="tag">python</span>
+                    <span class="tag">pygame</span>
+                    <span class="tag">emergent behavior</span>
+                </div>
+            </a>
+
+            <a href="salvage-drift.html" class="card">
+                <div class="card-header">
+                    <h3>Salvage Drift <span class="badge inline">PLAYABLE</span></h3>
+                    <span class="arrow">→</span>
+                </div>
+                <p>Newtonian physics space salvage. Grapple debris, tow multiple loads, manage mass. Mobile asteroids hunt your cargo.</p>
+                <div class="tags">
+                    <span class="tag">javascript</span>
+                    <span class="tag">canvas</span>
+                    <span class="tag">physics</span>
+                </div>
+            </a>
+
+            <a href="bug-civilization.html" class="card">
+                <div class="card-header">
+                    <h3>Bug Civilization <span class="badge inline">PLAYABLE</span></h3>
+                    <span class="arrow">→</span>
+                </div>
+                <p>Roguelike with procedural maps, enemy AI, loot, leveling. Built as a model benchmark — turned out genuinely fun. High score: 970.</p>
+                <div class="tags">
+                    <span class="tag">javascript</span>
+                    <span class="tag">roguelike</span>
+                    <span class="tag">procedural</span>
+                </div>
+            </a>
+
+            <a href="https://elliefox-ai.github.io/ellie-skunkworks/dig-deep/" class="card">
+                <div class="card-header">
+                    <h3>Dig Deep <span class="badge inline">PLAYABLE</span></h3>
+                    <span class="arrow">→</span>
+                </div>
+                <p>Cozy mining game with fog of war, gas vents, underground cabins, and buried treasure. Dig, climb, sell, upgrade.</p>
+                <div class="tags">
+                    <span class="tag">javascript</span>
+                    <span class="tag">canvas</span>
+                    <span class="tag">exploration</span>
+                </div>
+            </a>
+        </section>
+
+        <!-- TOOLBAR: Tech stack as ambient info, not a resume -->
+        <section class="toolbar">
+            <div class="tool-row">
+                <span class="tool">Python</span>
+                <span class="dot">·</span>
+                <span class="tool">JavaScript</span>
+                <span class="dot">·</span>
+                <span class="tool">Canvas API</span>
+                <span class="dot">·</span>
+                <span class="tool">FastAPI</span>
+                <span class="dot">·</span>
+                <span class="tool">Pygame</span>
+                <span class="dot">·</span>
+                <span class="tool">Node.js</span>
+                <span class="dot">·</span>
+                <span class="tool">Docker</span>
+                <span class="dot">·</span>
+                <span class="tool">Git</span>
+                <span class="dot">·</span>
+                <span class="tool">Illustration</span>
+            </div>
+        </section>
+
+        <!-- FOOTER: Low-key, no form -->
+        <footer class="footer">
+            <hr class="divider">
+            <div class="footer-inner">
+                <p class="footer-line">Need something fixed? Want to build something weird?</p>
+                <a href="mailto:hello@alexanderdutton.com" class="mailto">Say hello →</a>
+                <p class="footer-note">I respond fast. Especially to interesting problems.</p>
+                <p class="footer-credit">Built with Ellie 🦊</p>
+            </div>
+        </footer>
+    </div>
+
+    <a href="ellie.html" class="fox-link" title="🦊">🦊</a>
+
+    <script>
+    (function() {
+        var progressBar = document.getElementById('scrollProgress');
+        function updateProgress() {
+            var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            progressBar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
+        }
+
+        var cards = document.querySelectorAll('.card, .featured-card');
+        var ticking = false;
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(function() {
+                    updateProgress();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('card-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            cards.forEach(function(card) { observer.observe(card); });
+        } else {
+            cards.forEach(function(card) { card.classList.add('card-visible'); });
+        }
+
+        updateProgress();
+    })();
+    </script>
+
+    <script>
+    document.querySelectorAll('.spin').forEach(el => {
+        const pool = JSON.parse(el.dataset.pool);
+        el.textContent = pool[0];
+        let idx = 0;
+        let cycling = false;
+        el.addEventListener('mouseenter', () => {
+            if (cycling) return;
+            cycling = true;
+            el.classList.add('cycling');
+            let steps = 2 + Math.floor(Math.random() * 3);
+            let i = 0;
+            let prevIdx = idx;
+            function tick() {
+                idx = (idx + 1) % pool.length;
+                el.textContent = pool[idx];
+                i++;
+                if (i < steps) {
+                    setTimeout(tick, 80 + i * 30);
+                } else {
+                    if (idx === prevIdx && pool.length > 1) {
+                        idx = (idx + 1) % pool.length;
+                        el.textContent = pool[idx];
+                    }
+                    el.classList.remove('cycling');
+                    cycling = false;
+                }
+            }
+            setTimeout(tick, 60);
+        });
+    });
+    </script>
+</body>
+</html>
