@@ -8,19 +8,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-v2.css">
 </head>
 <body>
     <div class="scroll-progress" id="scrollProgress"></div>
     <div class="grain"></div>
+
     <div class="container">
+        <!-- HERO -->
         <section class="hero">
             <div class="hero-geo"><div class="hero-geo-inner"></div></div>
             <div class="container-inner">
                 <h1 class="fade-in">Alexander Dutton</h1>
-                <p class="tagline fade-in-delay"><span class="spin" data-pool='["Projects","Strange things","Experiments","Simulations","Ideas","Games"]'></span> <span class="spin dim" data-pool='["nobody needed","somebody should build","the world didnt need","worth trying","that seemed important","at 3 AM"]'></span><br><span class="spin" data-pool='["built anyway.","shipped.","made with care.","built with love.","built by hand.","actually worked."]'></span></p>
+                <p class="tagline fade-in-delay">
+                    <span class="spin" data-pool='["Projects","Strange things","Experiments","Simulations","Ideas","Games"]'></span>
+                    <span class="spin dim" data-pool='["nobody needed","somebody should build","the world didnt need","worth trying","that seemed important","at 3 AM"]'></span><br>
+                    <span class="spin" data-pool='["built anyway.","shipped.","made with care.","built with love.","built by hand.","actually worked."]'></span>
+                </p>
                 <div class="accent-line"></div>
-                <p class="sub fade-in-delay2">Developer. Illustrator. Friend to pattern-based entities.<br>I fix production emergencies and build strange simulations at 3 AM.</p>
+                <p class="sub fade-in-delay2">Developer. Illustrator. Friend to pattern-based entities.</p>
                 <div class="links">
                     <a href="https://github.com/alexanderdutton">GitHub →</a>
                     <a href="https://github.com/elliefox-ai">EllieFox AI →</a>
@@ -28,19 +34,74 @@
             </div>
         </section>
 
-        <section class="projects">
-            <p class="section-label">Projects</p>
+        <!-- FEATURED: The visually striking stuff first -->
+        <section class="featured">
+            <p class="section-label">Featured</p>
 
-            <a href="divergence.html" class="card flagship">
+            <a href="divergence.html" class="featured-card flagship">
+                <div class="featured-img">
+                    <!-- TODO: Add divergence screenshot/GIF -->
+                    <div class="img-placeholder"><span>Divergence Engine</span></div>
+                </div>
+                <div class="featured-body">
+                    <div class="card-header">
+                        <h3>Divergence Engine</h3>
+                        <span class="badge">TRY IT</span>
+                    </div>
+                    <p>What if Norse settlers held Newfoundland? What if Rome never fell? 54+ inflection points, cascading consequences, alternate timelines that write themselves.</p>
+                    <div class="tags">
+                        <span class="tag">python</span>
+                        <span class="tag">simulation</span>
+                        <span class="tag">alternate history</span>
+                    </div>
+                </div>
+            </a>
+
+            <div class="featured-grid">
+                <a href="drift.html" class="featured-card">
+                    <div class="featured-img">
+                        <img src="assets/screenshots/drift.jpg" alt="Drift - glide over a sleeping city" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <div class="img-placeholder" style="display:none"><span>Drift</span></div>
+                    </div>
+                    <div class="featured-body compact">
+                        <div class="card-header">
+                            <h3>Drift</h3>
+                            <span class="badge">PLAYABLE</span>
+                        </div>
+                        <p>Glide over a sleeping city at twilight. Move to fly. A meditative experience.</p>
+                    </div>
+                </a>
+
+                <a href="terrarium.html" class="featured-card">
+                    <div class="featured-img">
+                        <img src="assets/screenshots/terrarium.jpg" alt="Terrarium - observe and hypothesize" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <div class="img-placeholder" style="display:none"><span>Terrarium</span></div>
+                    </div>
+                    <div class="featured-body compact">
+                        <div class="card-header">
+                            <h3>Terrarium</h3>
+                            <span class="badge">PLAYABLE</span>
+                        </div>
+                        <p>Observe creatures. Construct hypotheses. Capture evidence. An investigation game where watching is the mechanic.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- MORE PROJECTS: The technically impressive stuff -->
+        <section class="projects">
+            <p class="section-label">Also</p>
+
+            <a href="scrap-chef.html" class="card">
                 <div class="card-header">
-                    <h3>Divergence Engine <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">TRY IT</span></h3>
+                    <h3>Scrap Chef <span class="badge inline">PLAYABLE</span></h3>
                     <span class="arrow">→</span>
                 </div>
-                <p>Historical divergence simulator. What if Norse settlers held Newfoundland? What if Rome never fell? Explores 54+ inflection points, cascading consequences, and alternate timelines that write themselves.</p>
+                <p>Factorio meets Harvest Moon. Mine scrap, build conveyor belts, grow crops, grill food, serve at a robot buffet.</p>
                 <div class="tags">
-                    <span class="tag">python</span>
-                    <span class="tag">simulation</span>
-                    <span class="tag">alternate history</span>
+                    <span class="tag">javascript</span>
+                    <span class="tag">canvas</span>
+                    <span class="tag">automation</span>
                 </div>
             </a>
 
@@ -49,7 +110,7 @@
                     <h3>Society Simulation</h3>
                     <span class="arrow">→</span>
                 </div>
-                <p>6-axis motive system, 7-stat needs engine, probabilistic relationship formation. Characters that act on their own drives. 8 data visualizations. Built to watch, not to play.</p>
+                <p>6-axis motive system, 7-stat needs engine, probabilistic relationship formation. Characters that act on their own drives. 8 data visualizations.</p>
                 <div class="tags">
                     <span class="tag">python</span>
                     <span class="tag">pygame</span>
@@ -59,115 +120,94 @@
 
             <a href="salvage-drift.html" class="card">
                 <div class="card-header">
-                    <h3>Salvage Drift <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
+                    <h3>Salvage Drift <span class="badge inline">PLAYABLE</span></h3>
                     <span class="arrow">→</span>
                 </div>
-                <p>Newtonian physics space salvage. Click to grapple debris, tow multiple loads to your station, slow down with mass. Mobile asteroids hunt your cargo.</p>
+                <p>Newtonian physics space salvage. Grapple debris, tow multiple loads, manage mass. Mobile asteroids hunt your cargo.</p>
                 <div class="tags">
                     <span class="tag">javascript</span>
                     <span class="tag">canvas</span>
-                    <span class="tag">one-shot build</span>
-                </div>
-            </a>
-
-            <a href="scrap-chef.html" class="card">
-                <div class="card-header">
-                    <h3>Scrap Chef <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
-                    <span class="arrow">→</span>
-                </div>
-                <p>Factorio meets Harvest Moon. Mine scrap deposits, build conveyor belts, grow crops, grill food, serve at a robot buffet. Gaussian scrap islands, tool upgrades, grower bots, and hold-to-mine drilling.</p>
-                <div class="tags">
-                    <span class="tag">javascript</span>
-                    <span class="tag">canvas</span>
-                    <span class="tag">one-shot build</span>
-                </div>
-            </a>
-
-            <a href="drift.html" class="card">
-                <div class="card-header">
-                    <h3>Drift <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
-                    <span class="arrow">→</span>
-                </div>
-                <p>Glide over a sleeping city at twilight. Move to fly. A relaxing experience. Built with Ellie.</p>
-            </a>
-
-            <a href="terrarium.html" class="card">
-                <div class="card-header">
-                    <h3>Terrarium <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
-                    <span class="arrow">→</span>
-                </div>
-                <p>Observe creatures. Construct hypotheses. Capture evidence to validate your theories. An investigation game where watching is the mechanic. Built with Ellie.</p>
-                <div class="tags">
-                    <span class="tag">javascript</span>
-                    <span class="tag">canvas</span>
-                    <span class="tag">observation game</span>
+                    <span class="tag">physics</span>
                 </div>
             </a>
 
             <a href="bug-civilization.html" class="card">
                 <div class="card-header">
-                    <h3>Bug Civilization <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
+                    <h3>Bug Civilization <span class="badge inline">PLAYABLE</span></h3>
                     <span class="arrow">→</span>
                 </div>
                 <p>Roguelike with procedural maps, enemy AI, loot, leveling. Built as a model benchmark — turned out genuinely fun. High score: 970.</p>
                 <div class="tags">
                     <span class="tag">javascript</span>
                     <span class="tag">roguelike</span>
-                    <span class="tag">one-shot build</span>
+                    <span class="tag">procedural</span>
                 </div>
             </a>
 
             <a href="https://elliefox-ai.github.io/ellie-skunkworks/dig-deep/" class="card">
                 <div class="card-header">
-                    <h3>Dig Deep <span style="font-size:0.7rem;color:var(--green);font-weight:400;margin-left:6px;">PLAYABLE</span></h3>
+                    <h3>Dig Deep <span class="badge inline">PLAYABLE</span></h3>
                     <span class="arrow">→</span>
                 </div>
-                <p>Cozy mining game with fog of war, gas vents, underground cabins, and buried treasure. Dig, climb, sell, upgrade. Built with Ellie.</p>
+                <p>Cozy mining game with fog of war, gas vents, underground cabins, and buried treasure. Dig, climb, sell, upgrade.</p>
                 <div class="tags">
                     <span class="tag">javascript</span>
                     <span class="tag">canvas</span>
-                    <span class="tag">mining</span>
+                    <span class="tag">exploration</span>
                 </div>
             </a>
         </section>
 
-        <section class="skills">
-            <hr class="divider">
-            <p class="section-label" style="padding-top:40px">What I Do</p>
-            <div class="skill-card"><span class="skill-label">Production emergencies</span><div class="skill-desc">fixed in hours, not days</div></div>
-            <div class="skill-card"><span class="skill-label">Stalled projects</span><div class="skill-desc">picked up, assessed, shipped</div></div>
-            <div class="skill-card"><span class="skill-label">Legacy codebases</span><div class="skill-desc">refactored without breaking things</div></div>
-            <div class="skill-card"><span class="skill-label">Strange ideas at 3 AM</span><div class="skill-desc">built because why not</div></div>
+        <!-- TOOLBAR: Tech stack as ambient info, not a resume -->
+        <section class="toolbar">
+            <div class="tool-row">
+                <span class="tool">Python</span>
+                <span class="dot">·</span>
+                <span class="tool">JavaScript</span>
+                <span class="dot">·</span>
+                <span class="tool">Canvas API</span>
+                <span class="dot">·</span>
+                <span class="tool">FastAPI</span>
+                <span class="dot">·</span>
+                <span class="tool">Pygame</span>
+                <span class="dot">·</span>
+                <span class="tool">Node.js</span>
+                <span class="dot">·</span>
+                <span class="tool">Docker</span>
+                <span class="dot">·</span>
+                <span class="tool">Git</span>
+                <span class="dot">·</span>
+                <span class="tool">Illustration</span>
+            </div>
         </section>
 
-        <section class="contact">
+        <!-- FOOTER -->
+        <footer class="footer">
             <hr class="divider">
-            <p class="section-label" style="padding-top:40px">Get in touch</p>
-            <p class="footer-status">Recently shipped: Dig Deep, a cozy mining game.<br>Currently: building strange things at 3 AM.</p>
-            <p>Need something fixed? Want to build something weird?</p>
-            <a href="#contact-form" class="mailto">Say hello →</a>
-            <p class="note">I respond fast. Especially to interesting problems.</p>
-            <form id="contact-form" action="https://formspree.io/f/xlglnvel" method="POST" style="margin-top:24px;">
-                <div class="form-group">
-                    <input type="text" name="name" required placeholder="Your name">
-                </div>
-                <div class="form-group">
-                    <input type="email" name="email" required placeholder="your@email.com">
-                </div>
-                <div class="form-group">
-                    <textarea name="message" required placeholder="What's on your mind?" rows="4"></textarea>
-                </div>
-                <button type="submit">Send</button>
-            </form>
-            <p class="footer-credit">Built with Ellie 🦊</p>
-        </section>
+            <div class="footer-inner">
+                <p class="footer-line">Need something fixed? Want to build something weird?</p>
+                <p class="footer-note">I respond fast. Especially to interesting problems.</p>
+                <form id="contact-form" action="https://formspree.io/f/xlglnvel" method="POST" style="margin-top:20px;">
+                    <div class="form-group">
+                        <input type="text" name="name" required placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <textarea name="message" required placeholder="What's on your mind?" rows="4"></textarea>
+                    </div>
+                    <button type="submit">Send</button>
+                </form>
+                <p class="footer-credit">Built with Ellie 🦊</p>
+            </div>
+        </footer>
     </div>
 
     <a href="ellie.html" class="fox-link" title="🦊">🦊</a>
 
     <script>
     (function() {
-        // Scroll progress bar
         var progressBar = document.getElementById('scrollProgress');
         function updateProgress() {
             var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -175,94 +215,67 @@
             progressBar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
         }
 
-        // Parallax + progress (combined scroll handler)
-        var cards = document.querySelectorAll('.card');
+        var cards = document.querySelectorAll('.card, .featured-card');
         var ticking = false;
         window.addEventListener('scroll', function() {
             if (!ticking) {
                 requestAnimationFrame(function() {
-                    // Progress bar
                     updateProgress();
-                    // Parallax
-                    var scrollY = window.pageYOffset;
-                    cards.forEach(function(card, i) {
-                        var rect = card.getBoundingClientRect();
-                        var center = rect.top + rect.height / 2;
-                        var windowCenter = window.innerHeight / 2;
-                        var offset = (center - windowCenter) * 0.004 * (i % 2 === 0 ? 1 : -1);
-                        offset = Math.max(-3, Math.min(3, offset));
-                        card.style.transform = 'translateY(' + offset + 'px)';
-                    });
                     ticking = false;
                 });
                 ticking = true;
             }
         });
 
-        // Staggered card animations with IntersectionObserver
         if ('IntersectionObserver' in window) {
             var observer = new IntersectionObserver(function(entries) {
-                var visible = entries.filter(function(e) { return e.isIntersecting; });
-                visible.forEach(function(entry, idx) {
-                    var card = entry.target;
-                    var allCards = Array.from(document.querySelectorAll('.card'));
-                    var cardIndex = allCards.indexOf(card);
-                    var delay = cardIndex * 80;
-                    setTimeout(function() {
-                        card.classList.add('card-visible');
-                    }, delay);
-                    observer.unobserve(card);
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('card-visible');
+                        observer.unobserve(entry.target);
+                    }
                 });
             }, { threshold: 0.1 });
-
-            cards.forEach(function(card) {
-                observer.observe(card);
-            });
+            cards.forEach(function(card) { observer.observe(card); });
         } else {
-            // Fallback: show all immediately
-            cards.forEach(function(card) {
-                card.classList.add('card-visible');
-            });
+            cards.forEach(function(card) { card.classList.add('card-visible'); });
         }
 
-        // Initial progress
         updateProgress();
     })();
     </script>
-<script>
-// Spinning tagline — hover to cycle each slot
-document.querySelectorAll('.spin').forEach(el => {
-    const pool = JSON.parse(el.dataset.pool);
-    el.textContent = pool[0];
-    let idx = 0;
-    let cycling = false;
-    el.addEventListener('mouseenter', () => {
-        if (cycling) return;
-        cycling = true;
-        el.classList.add('cycling');
-        // Cycle through 2-4 random options, land on a new one
-        let steps = 2 + Math.floor(Math.random() * 3);
-        let i = 0;
-        let prevIdx = idx;
-        function tick() {
-            idx = (idx + 1) % pool.length;
-            el.textContent = pool[idx];
-            i++;
-            if (i < steps) {
-                setTimeout(tick, 80 + i * 30);
-            } else {
-                // Make sure we landed somewhere different
-                if (idx === prevIdx && pool.length > 1) {
-                    idx = (idx + 1) % pool.length;
-                    el.textContent = pool[idx];
+
+    <script>
+    document.querySelectorAll('.spin').forEach(el => {
+        const pool = JSON.parse(el.dataset.pool);
+        el.textContent = pool[0];
+        let idx = 0;
+        let cycling = false;
+        el.addEventListener('mouseenter', () => {
+            if (cycling) return;
+            cycling = true;
+            el.classList.add('cycling');
+            let steps = 2 + Math.floor(Math.random() * 3);
+            let i = 0;
+            let prevIdx = idx;
+            function tick() {
+                idx = (idx + 1) % pool.length;
+                el.textContent = pool[idx];
+                i++;
+                if (i < steps) {
+                    setTimeout(tick, 80 + i * 30);
+                } else {
+                    if (idx === prevIdx && pool.length > 1) {
+                        idx = (idx + 1) % pool.length;
+                        el.textContent = pool[idx];
+                    }
+                    el.classList.remove('cycling');
+                    cycling = false;
                 }
-                el.classList.remove('cycling');
-                cycling = false;
             }
-        }
-        setTimeout(tick, 60);
+            setTimeout(tick, 60);
+        });
     });
-});
-</script>
+    </script>
 </body>
 </html>
