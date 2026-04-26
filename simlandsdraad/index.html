@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/simlandsdraad/">
+<title>SimLandsdraad — Landsraad Simulation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--text:#ccc;--gold:#c4a35a;--spice:#d4763c}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+h1{font-size:1.4rem;color:var(--gold);padding:12px 20px 0;letter-spacing:1px}
+.subtitle{color:#666;font-size:.75rem;padding:0 20px 8px}
+.tabs{display:flex;gap:2px;padding:8px 16px 0;background:var(--bg)}
+.tab{padding:8px 16px;cursor:pointer;border:none;background:var(--bg3);color:#888;font-size:.85rem;border-radius:6px 6px 0 0;transition:.2s}
+.tab:hover{color:var(--text)}.tab.active{background:var(--bg2);color:var(--gold)}
+#content{padding:16px 20px}
+.panel{display:none}.panel.active{display:block}
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.stat-card{background:var(--bg3);border-radius:8px;padding:12px 16px;min-width:140px;flex:1}
+.stat-card .label{font-size:.7rem;color:#666;text-transform:uppercase;letter-spacing:.5px}
+.stat-card .value{font-size:1.5rem;color:var(--gold);font-weight:700}
+.faction-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+.faction-card{background:var(--bg3);border-radius:8px;padding:14px;border-left:3px solid var(--gold)}
+.faction-card h3{font-size:.95rem;margin-bottom:8px;display:flex;justify-content:space-between}
+.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.char-card{background:var(--bg3);border-radius:8px;padding:10px 14px;cursor:pointer;transition:.2s}
+.char-card:hover{background:var(--bg2)}
+.char-card .name{font-weight:600;margin-bottom:4px}
+.char-card .faction-tag{font-size:.7rem;padding:2px 6px;border-radius:4px;background:var(--bg);display:inline-block}
+.bar-row{display:flex;align-items:center;gap:6px;font-size:.75rem;margin:3px 0}
+.bar-row .lbl{width:55px;color:#666;flex-shrink:0}
+.bar-track{flex:1;height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px}
+.bar-row .num{width:36px;text-align:right;color:#888;font-variant-numeric:tabular-nums;flex-shrink:0}
+.chron-item{padding:8px 12px;border-left:3px solid var(--bg3);margin-bottom:4px;font-size:.85rem}
+.chron-item:hover{background:var(--bg3)}
+.chron-tick{color:var(--gold);font-weight:600;font-size:.75rem}
+.hm-cell{transition:.2s}.hm-cell:hover{stroke:#fff;stroke-width:2}
+canvas{border-radius:8px;background:var(--bg2)}
+.char-card{border-top:3px solid var(--bg);padding:12px}
+.char-card h3{font-size:.9rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.char-card .rank{color:#555;font-size:.75rem;margin-left:auto}
+.wounded-badge{background:#b54a4a;color:#fff;font-size:.65rem;padding:1px 5px;border-radius:3px}
+.char-card .tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.char-card .tag{font-size:.65rem;padding:1px 5px;border-radius:3px;background:var(--bg2);color:#888}
+.char-card .tag.personality{border:1px solid #555}
+.char-card .tag.dynamic{background:#c4a35a22;color:#c4a35a;border:1px solid #c4a35a}
+.char-card .tag.paranoid{background:#b54a4a33;color:#b54a4a;border:1px solid #b54a4a}
+.char-card .tag.suspicious{background:#b5a04a33;color:#b5a04a;border:1px solid #b5a04a}
+.char-card .tag.grieving{background:#4a7ab533;color:#4a7ab5;border:1px solid #4a7ab5}
+.char-card .favors{font-size:.7rem;color:#888;margin-top:4px;border-top:1px solid var(--bg);padding-top:4px}
+.mini-bar{display:flex;align-items:center;gap:6px;font-size:.7rem;margin:2px 0}
+.mini-bar .label{width:52px;color:#666;flex-shrink:0}
+.mini-bar .track{flex:1;height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.mini-bar .fill{height:100%;border-radius:2px}
+.mini-bar .val{width:30px;text-align:right;color:#666;flex-shrink:0}
+.filter-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.filter-btn{padding:4px 10px;border:1px solid #333;background:var(--bg3);color:#888;border-radius:4px;cursor:pointer;font-size:.75rem}
+.filter-btn.active{background:var(--bg2);color:var(--gold);border-color:var(--gold)}
+.chron-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.chron-controls input,.chron-controls select{background:var(--bg3);border:1px solid #333;color:var(--text);padding:6px 10px;border-radius:4px;font-size:.8rem}
+.chron-controls input{flex:1;min-width:120px}
+.chron-row{display:flex;gap:8px;padding:6px 10px;border-left:3px solid var(--bg3);font-size:.8rem;align-items:baseline}
+.chron-row:hover{background:var(--bg3)}
+.chron-row .tick{color:var(--gold);font-weight:600;font-size:.7rem;min-width:28px}
+.chron-row .initiator{font-weight:600;min-width:70px}
+.chron-row .action-type{color:var(--spice);min-width:80px}
+.chron-row .bindings{color:#888;font-size:.75rem}
+.chart-section{margin-top:16px}
+.chart-section h3{color:var(--gold);font-size:.9rem;margin-bottom:8px}
+.hidden{display:none}
+.combat-round{padding:2px 0 2px 12px;border-left:2px solid #333;margin-left:8px}
+</style>
+</head>
+<body>
+<h1>SimLandsdraad</h1>
+<div class="subtitle" id="subtitle">Loading...</div>
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="characters">Characters</button>
+  <button class="tab" data-tab="relationships">Relationships</button>
+  <button class="tab" data-tab="timeline">Timeline</button>
+  <button class="tab" data-tab="chronicle">Chronicle</button>
+  <button class="tab" data-tab="trends">Trends</button>
+  <button class="tab" data-tab="factions">Factions</button>
+  <button class="tab" data-tab="missions">Missions</button>
+  <button class="tab" data-tab="combat">Combat</button>
+  <button class="tab" data-tab="narratives">Narratives</button>
+</div>
+<div id="content">
+  <div class="panel active" id="p-overview"></div>
+  <div class="panel" id="p-characters"></div>
+  <div class="panel" id="p-relationships"></div>
+  <div class="panel" id="p-timeline"></div>
+  <div class="panel" id="p-chronicle"></div>
+  <div class="panel" id="p-trends"></div>
+  <div class="panel" id="p-factions"></div>
+  <div class="panel" id="p-missions"></div>
+  <div class="panel" id="p-combat"></div>
+  <div class="panel" id="p-narratives"></div>
+</div>
+
+<script type="module">
+import { S, setSimData } from './js/shared.js';
+import { renderOverview } from './js/overview.js';
+import { renderCharacters } from './js/characters.js';
+import { renderRelationships } from './js/relationships.js';
+import { renderTimeline } from './js/timeline.js';
+import { renderChronicle } from './js/chronicle.js';
+import { renderTrends } from './js/trends.js';
+import { renderFactions } from './js/factions.js';
+import { renderMissions } from './js/missions.js';
+import { renderCombat } from './js/combat.js';
+import { renderNarratives } from './js/narratives.js';
+
+try {
+  const r = await fetch('./sim_output.json');
+  const data = await r.json();
+  setSimData(data);
+} catch (e) {
+  document.body.innerHTML = '<h2 style="color:#c4a35a;text-align:center;margin-top:20%">No sim_output.json found.</h2>';
+  throw e;
+}
+
+document.getElementById('subtitle').textContent =
+  `${S.D.meta.totalTicks} ticks · ${S.D.characters.length} characters · ${S.D.chronicle.length} events · ${new Date(S.D.meta.runDate).toLocaleDateString()}`;
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('p-' + t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'relationships') renderRelationships();
+    if (t.dataset.tab === 'timeline') renderTimeline();
+    if (t.dataset.tab === 'trends') renderTrends();
+    if (t.dataset.tab === 'factions') renderFactions();
+    if (t.dataset.tab === 'missions') renderMissions();
+    if (t.dataset.tab === 'combat') renderCombat();
+    if (t.dataset.tab === 'narratives') renderNarratives();
+  };
+});
+
+renderOverview();
+renderCharacters();
+renderChronicle();
+</script>
+</body>
+</html>
