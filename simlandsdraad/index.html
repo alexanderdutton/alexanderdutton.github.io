@@ -99,6 +99,42 @@ canvas{border-radius:8px;background:var(--bg2)}
 .chart-section h3{color:var(--gold);font-size:.9rem;margin-bottom:8px}
 .hidden{display:none}
 .combat-round{padding:2px 0 2px 12px;border-left:2px solid #333;margin-left:8px}
+/* Travel panel */
+.travel-section{margin-bottom:24px}
+.travel-section h3{color:var(--gold);font-size:.95rem;margin-bottom:10px}
+.schedule-grid{display:flex;flex-direction:column;gap:2px}
+.schedule-header,.schedule-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:4px 8px;font-size:.8rem}
+.schedule-header{color:var(--text-dim);border-bottom:1px solid var(--bg3);font-weight:600}
+.schedule-row:nth-child(odd){background:var(--bg3)}
+.freq-high{color:#6cbf6c}.freq-mid{color:var(--gold)}.freq-low{color:#c87454}
+.next-win{font-family:'IBM Plex Mono',monospace}
+.events-grid{display:flex;flex-wrap:wrap;gap:8px}
+.event-card{background:var(--bg3);padding:8px 12px;border-radius:4px;border-left:3px solid var(--spice)}
+.event-name{font-weight:600;margin-right:8px}.event-when{color:var(--gold);font-family:'IBM Plex Mono',monospace;font-size:.85rem}
+.locations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.location-card{background:var(--bg3);padding:10px 12px;border-radius:4px}
+.location-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.loc-title{font-weight:600;font-size:.9rem}.loc-cadence{font-size:.75rem;color:var(--text-dim)}
+.location-people{display:flex;flex-wrap:wrap;gap:4px}
+.person-badge{background:var(--bg2);padding:2px 8px;border-radius:3px;font-size:.8rem;white-space:nowrap}
+.person-badge.traveling{background:rgba(212,118,60,.15);border:1px solid var(--spice)}
+.in-transit{border:1px solid var(--spice)}
+.timeline-controls{margin-bottom:8px}
+.timeline-controls select{background:var(--bg3);color:var(--text);border:1px solid var(--bg2);padding:4px 8px;border-radius:3px;font-size:.8rem}
+.timeline-entries{max-height:500px;overflow-y:auto}
+.timeline-entry{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.03)}
+.tl-tick{color:var(--text-dim);font-family:'IBM Plex Mono',monospace;min-width:36px}
+.tl-char{font-weight:600;min-width:80px}
+.tl-route{color:var(--text)}
+.travel-reason{color:var(--spice);font-size:.75rem;font-style:italic;margin-left:auto}
+.timeline-empty{color:var(--text-dim);font-style:italic;padding:12px}
+.faction-atreides{border-left:2px solid #4a9}
+.faction-harkonnen{border-left:2px solid #c44}
+.faction-corrino{border-left:2px solid #d4a}
+.faction-fenring{border-left:2px solid #a8d}
+.faction-spacing_guild{border-left:2px solid #4ad}
+.faction-benegesserit{border-left:2px solid #da4}
+.faction-richese{border-left:2px solid #8bd}
 </style>
 </head>
 <body>
@@ -118,6 +154,7 @@ canvas{border-radius:8px;background:var(--bg2)}
   <button class="tab" data-tab="missions">Missions</button>
   <button class="tab" data-tab="combat">Combat</button>
   <button class="tab" data-tab="narratives">Narratives</button>
+  <button class="tab" data-tab="travel">Travel</button>
 </div>
 <div id="content">
   <div class="panel active" id="p-overview"></div>
@@ -130,6 +167,7 @@ canvas{border-radius:8px;background:var(--bg2)}
   <div class="panel" id="p-missions"></div>
   <div class="panel" id="p-combat"></div>
   <div class="panel" id="p-narratives"></div>
+  <div class="panel" id="p-travel"></div>
 </div>
 
 <script type="module">
@@ -144,6 +182,7 @@ import { renderFactions } from './js/factions.js';
 import { renderMissions } from './js/missions.js';
 import { renderCombat } from './js/combat.js';
 import { renderNarratives } from './js/narratives.js';
+import { renderTravel } from './js/travel.js';
 
 try {
   const r = await fetch('./sim_output.json');
@@ -170,6 +209,7 @@ document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === 'missions') renderMissions();
     if (t.dataset.tab === 'combat') renderCombat();
     if (t.dataset.tab === 'narratives') renderNarratives();
+    if (t.dataset.tab === 'travel') renderTravel();
   };
 });
 
