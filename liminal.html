@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liminal Films</title>
+    <meta name="description" content="Title cards for movies that don't exist.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Space+Mono:ital@0;1&family=Inter:wght@300;400;600&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0a;
+            color: #e8e4df;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .card {
+            position: relative;
+            width: 90vw;
+            max-width: 800px;
+            aspect-ratio: 16/10;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .atmosphere {
+            position: absolute;
+            inset: 0;
+            transition: opacity 1.2s ease;
+        }
+
+        .grain {
+            position: absolute;
+            inset: 0;
+            opacity: 0.06;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-size: 128px;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scanlines {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        .content {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 12;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .top-credit {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: clamp(0.5rem, 1.2vw, 0.7rem);
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.8s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .top-credit.show { opacity: 0.6; transform: translateY(0); }
+
+        .title {
+            font-family: var(--title-font, 'Playfair Display', serif);
+            font-weight: var(--title-weight, 900);
+            font-style: var(--title-style, normal);
+            font-size: clamp(2rem, 7vw, 5rem);
+            line-height: 1.05;
+            letter-spacing: var(--title-spacing, -0.02em);
+            color: var(--title-color, #e8e4df);
+            text-shadow: 0 0 60px rgba(0,0,0,0.8);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 90%;
+        }
+
+        .title.show { opacity: 1; transform: scale(1); }
+
+        .subtitle {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-style: italic;
+            font-size: clamp(0.9rem, 2vw, 1.3rem);
+            letter-spacing: 0.05em;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.8s ease 0.4s;
+            margin-top: 0.8rem;
+            max-width: 70%;
+        }
+
+        .subtitle.show { opacity: 0.5; transform: translateY(0); }
+
+        .bottom-bar {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 2rem;
+            right: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 12;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.8s ease 0.6s;
+        }
+
+        .bottom-bar.show { opacity: 1; transform: translateY(0); }
+
+        .bottom-credits {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: clamp(0.45rem, 0.9vw, 0.6rem);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            line-height: 1.8;
+            text-align: left;
+        }
+
+        .year {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.2rem, 3vw, 2rem);
+            letter-spacing: 0.1em;
+            opacity: 0.35;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: 0.65rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            opacity: 0.2;
+            z-index: 20;
+            transition: opacity 0.5s;
+        }
+
+        .hint:hover { opacity: 0.5; }
+
+        /* Letterbox bars for cinematic feel */
+        .letterbox-top, .letterbox-bottom {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 6%;
+            background: #000;
+            z-index: 13;
+        }
+        .letterbox-top { top: 0; }
+        .letterbox-bottom { bottom: 0; }
+
+        @media (max-width: 600px) {
+            .card { width: 95vw; aspect-ratio: 3/4; }
+            .content { padding: 1.2rem; }
+            .bottom-bar { left: 1.2rem; right: 1.2rem; bottom: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card" id="card">
+        <div class="atmosphere" id="atmosphere"></div>
+        <div class="vignette"></div>
+        <div class="scanlines"></div>
+        <div class="grain"></div>
+        <div class="letterbox-top"></div>
+        <div class="letterbox-bottom"></div>
+
+        <div class="content">
+            <div class="top-credit" id="topCredit"></div>
+            <div class="title" id="title"></div>
+            <div class="subtitle" id="subtitle"></div>
+        </div>
+
+        <div class="bottom-bar" id="bottomBar">
+            <div class="bottom-credits" id="bottomCredits"></div>
+            <div class="year" id="year"></div>
+        </div>
+    </div>
+
+    <div class="hint">click anywhere for another</div>
+
+    <script>
+    const DATA = {
+        titles: [
+            "The Weight of Static", "Monument to a Frequency", "All the Rooms You Forgot",
+            "The Cartographer's Confession", "Soft Architecture", "The Return Clause",
+            "Exit Through the Darkroom", "What the Building Remembered", "Three Frames of Snow",
+            "The Collection Agency for Lost Time", "A Hotel in the Rain", "The Second Sleep",
+            "Your Name in a Language I Don't Speak", "The Holloway Protocol", "Signal and Noise",
+            "The Department of Almost", "Swimming Pool at Midnight", "The Color You See Before Dawn",
+            "Removal of the Fourth Wall", "An Arrangement of Absences",
+            "The Last Frequency", "Dust on Everything", "Nine Views of the Same Window",
+            "The Mariana Trench of Afternoons", "Other People's Gardens", "Wiring the Dark",
+            "The Incomplete Encyclopedia of Longing", "A Sound Like Closure",
+            "The Café That Wasn't There Yesterday", "Station Ident", "Unclaimed Baggage",
+            "The Correct Amount of Light", "A Theory of Goodbye",
+            "Everything We Carried", "The Slow Season", "Revenue from Missing Persons",
+            "A Field Guide to Leaving", "The Compression Algorithm for Grief",
+            "Whatever Happened to the Signal", "The Architecture of Forgetting",
+            "Thirteen Views of an Empty Theater", "The Botanist's Last Tape",
+            "Reception Area", "The Fog as Witness", "Transmission Received",
+            "A Map of Every Place You've Slept", "The Ocean Between Stations",
+            "The Department of Unfinished Conversations", "Amber and Frequency",
+            "The Liminal Maintenance Crew"
+        ],
+        subtitles: [
+            "A film about what stays behind",
+            "She kept finding doors that weren't there before",
+            "No one remembered building it. Everyone remembered being there.",
+            "The signal was always there. We just stopped listening.",
+            "What if forgetting is a kind of architecture?",
+            "A story told in frequencies and empty rooms",
+            "He said the building was speaking. No one believed him.",
+            "The last transmission from a place that doesn't exist",
+            "Time doesn't heal. It just rearranges the furniture.",
+            "A love story in a language neither of them spoke",
+            "The map was accurate. The territory had simply moved on.",
+            "Some frequencies only travel through walls.",
+            "What happens between the station and the signal",
+            "An encyclopedia of things that almost happened",
+            "The room was empty. The echo disagreed.",
+            "A ghost story about the ghost of a building",
+            "They found the recording. The recording found them back.",
+            "The correct amount of light is never enough.",
+            "An experiment in the architecture of absence",
+            "Every window looks out onto a different decade"
+        ],
+        creditVerbs: [
+            "A Film By", "Directed By", "Created By", "Conceived By", "From",
+            "A Vision By", "Realized By", "Written and Directed By"
+        ],
+        directors: [
+            "Maren Thale", "Emil Vasquez", "Lotte Harlander", "Dmitri Sorel",
+            "Ada Nakamura", "Renzo Castellane", "Signe Hauge", "Tomás Aldric",
+            "Yelena Provost", "Kofi Marchetti", "Ingrid Solheim", "Rafael Strand",
+            "Celine Moreau", "Ahmed Reimann", "Dahlia Krug", "Leon Orantes",
+            "Petra Voss", "Marco Lilt", "Sacha Brandt", "Noor Hadley",
+            "Ellie Fox", "Vera Tomren", "Jude Almquist", "Alexander Dutton"
+        ],
+        studios: [
+            "Fogline Pictures", "Threshold Films", "Absentia Cinema",
+            "Dead Channel Productions", "The Long Now Studio",
+            "Third Sleep Media", "Static Age Films", "Ghost Frequency",
+            "Hotel Cinerama", "Soft Machine Pictures", "Night Frequency",
+            "Late Signal", "Pale Blue Light", "The Department of Film",
+            "Holloway Studios", "Deep Archive Cinema"
+        ],
+        years: [
+            "1983", "1987", "1991", "1994", "1997", "1999", "2001",
+            "2003", "2006", "2008", "2011", "2014", "2017", "2019",
+            "2023", "2026"
+        ],
+        moods: [
+            {
+                name: "dusk",
+                bg: [
+                    "linear-gradient(170deg, #1a0a2e 0%, #2d1b4e 30%, #4a2c6e 50%, #8b4513 75%, #cd853f 90%, #daa520 100%)",
+                    "linear-gradient(160deg, #0d0d1a 0%, #1a1a3e 25%, #2e1a4a 45%, #6b3a5e 65%, #c46a3c 85%, #e8a849 100%)",
+                    "linear-gradient(180deg, #0a0a1e 0%, #1e1040 35%, #4a2060 55%, #a04030 80%, #d4a030 100%)"
+                ],
+                titleColor: "#f0e6d3",
+                accent: "#daa520"
+            },
+            {
+                name: "deep ocean",
+                bg: [
+                    "linear-gradient(175deg, #020810 0%, #0a1628 30%, #0d2137 55%, #1a3a4a 75%, #2a5a5a 100%)",
+                    "linear-gradient(165deg, #050d15 0%, #0a1a30 25%, #0f2a4a 50%, #1a4a5a 80%, #2a6a6a 100%)",
+                    "linear-gradient(185deg, #030a12 0%, #081828 40%, #102848 60%, #183858 100%)"
+                ],
+                titleColor: "#a8c8d8",
+                accent: "#2a6a6a"
+            },
+            {
+                name: "desert night",
+                bg: [
+                    "linear-gradient(160deg, #1a0a0a 0%, #2a1510 30%, #3a2015 50%, #5a3020 70%, #8a5030 100%)",
+                    "linear-gradient(170deg, #0d0805 0%, #1a1008 25%, #2a1810 45%, #4a2818 65%, #6a3820 85%, #8a4828 100%)",
+                    "linear-gradient(155deg, #100808 0%, #201010 30%, #301815 55%, #502820 80%, #704030 100%)"
+                ],
+                titleColor: "#d4b896",
+                accent: "#8a5030"
+            },
+            {
+                name: "northern",
+                bg: [
+                    "linear-gradient(165deg, #0a0a14 0%, #0f1428 25%, #142038 40%, #1a3060 55%, #204080 70%, #3070a0 100%)",
+                    "linear-gradient(175deg, #080810 0%, #0c1020 30%, #101838 50%, #183060 70%, #2060a0 85%, #40a0c0 100%)",
+                    "linear-gradient(170deg, #060610 0%, #0a1028 35%, #0e2040 55%, #184060 75%, #2870a0 100%)"
+                ],
+                titleColor: "#b0d0e8",
+                accent: "#40a0c0"
+            },
+            {
+                name: "fog",
+                bg: [
+                    "linear-gradient(180deg, #1a1a1a 0%, #2a2a2a 30%, #3a3a3a 50%, #4a4a48 70%, #5a5a55 100%)",
+                    "linear-gradient(170deg, #141414 0%, #222222 35%, #353535 55%, #484845 75%, #585855 100%)",
+                    "linear-gradient(165deg, #181818 0%, #282828 30%, #3a3a38 55%, #505048 80%, #606058 100%)"
+                ],
+                titleColor: "#c8c4bc",
+                accent: "#606058"
+            },
+            {
+                name: "red light",
+                bg: [
+                    "linear-gradient(170deg, #0a0205 0%, #1a0810 25%, #2a0e1a 45%, #4a1420 65%, #6a1a28 85%, #8a2030 100%)",
+                    "linear-gradient(160deg, #080205 0%, #140510 30%, #220a18 50%, #381020 70%, #581828 100%)",
+                    "linear-gradient(180deg, #0a0305 0%, #180812 35%, #280e1a 55%, #481425 80%, #682030 100%)"
+                ],
+                titleColor: "#d8a8a0",
+                accent: "#8a2030"
+            },
+            {
+                name: "amber",
+                bg: [
+                    "linear-gradient(170deg, #0a0800 0%, #1a1400 25%, #2a2000 45%, #4a3800 65%, #6a5000 85%, #8a6800 100%)",
+                    "linear-gradient(160deg, #080600 0%, #161000 30%, #241c00 50%, #3a2e00 70%, #5a4600 100%)",
+                    "linear-gradient(180deg, #0a0800 0%, #1c1400 35%, #302200 55%, #503a00 80%, #705800 100%)"
+                ],
+                titleColor: "#e8d4a0",
+                accent: "#8a6800"
+            },
+            {
+                name: "void",
+                bg: [
+                    "linear-gradient(175deg, #000005 0%, #050510 30%, #0a0a1a 55%, #0f0f25 80%, #141430 100%)",
+                    "linear-gradient(165deg, #020205 0%, #080812 35%, #0e0e20 60%, #141430 100%)",
+                    "linear-gradient(180deg, #000003 0%, #060610 40%, #0c0c1e 60%, #121230 100%)"
+                ],
+                titleColor: "#8080b0",
+                accent: "#141430"
+            }
+        ],
+        fonts: [
+            { family: "'Playfair Display', serif", weight: 900, style: "normal", spacing: "-0.02em" },
+            { family: "'Bebas Neue', sans-serif", weight: 400, style: "normal", spacing: "0.12em" },
+            { family: "'Cormorant Garamond', serif", weight: 600, style: "normal", spacing: "0.15em" },
+            { family: "'Inter', sans-serif", weight: 300, style: "normal", spacing: "0.08em" },
+            { family: "'Space Mono', monospace", weight: 400, style: "normal", spacing: "-0.01em" },
+            { family: "'Playfair Display', serif", weight: 400, style: "italic", spacing: "0.02em" }
+        ]
+    };
+
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function generate() {
+        // Fade out
+        const els = ['topCredit', 'title', 'subtitle', 'bottomBar'];
+        els.forEach(id => document.getElementById(id).classList.remove('show'));
+
+        setTimeout(() => {
+            const mood = pick(DATA.moods);
+            const bg = pick(mood.bg);
+            const font = pick(DATA.fonts);
+            const title = pick(DATA.titles);
+            const subtitle = pick(DATA.subtitles);
+            const director = pick(DATA.directors);
+            const studio = pick(DATA.studios);
+            const year = pick(DATA.years);
+            const creditVerb = pick(DATA.creditVerbs);
+
+            // Atmosphere
+            document.getElementById('atmosphere').style.background = bg;
+
+            // Title styling
+            const titleEl = document.getElementById('title');
+            titleEl.style.setProperty('--title-font', font.family);
+            titleEl.style.setProperty('--title-weight', font.weight);
+            titleEl.style.setProperty('--title-style', font.style);
+            titleEl.style.setProperty('--title-spacing', font.spacing);
+            titleEl.style.setProperty('--title-color', mood.titleColor);
+            titleEl.textContent = title;
+
+            // Top credit
+            document.getElementById('topCredit').textContent = studio.toUpperCase();
+
+            // Subtitle
+            document.getElementById('subtitle').textContent = subtitle;
+
+            // Bottom credits
+            const credHtml = `${creditVerb} ${director}<br>Sound & Light · ${pick(DATA.studios)}`;
+            document.getElementById('bottomCredits').innerHTML = credHtml;
+
+            // Year
+            document.getElementById('year').textContent = year;
+
+            // Fade in with stagger
+            setTimeout(() => document.getElementById('topCredit').classList.add('show'), 100);
+            setTimeout(() => document.getElementById('title').classList.add('show'), 250);
+            setTimeout(() => document.getElementById('subtitle').classList.add('show'), 500);
+            setTimeout(() => document.getElementById('bottomBar').classList.add('show'), 650);
+        }, 600);
+    }
+
+    // Initial generation
+    generate();
+
+    // Click to regenerate
+    document.body.addEventListener('click', generate);
+    document.body.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'Enter') {
+            e.preventDefault();
+            generate();
+        }
+    });
+    </script>
+</body>
+</html>
