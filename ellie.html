@@ -29,6 +29,9 @@
         footer { padding: 40px 0; text-align: center; }
         footer p { font-size: 0.8rem; color: var(--text-dimmer); }
         @media (max-width: 640px) { header { padding: 80px 0 40px; } header h1 { font-size: 1.6rem; } }
+        /* Gentler card reveals for writing page */
+        .card { opacity: 0; transform: translateY(10px); transition: opacity 0.7s ease-out, transform 0.7s ease-out, background 0.25s, border-color 0.25s; }
+        .card.card-visible { opacity: 1; transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -404,7 +407,7 @@
                         observer.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.1 });
+            }, { threshold: 0, rootMargin: '0px 0px -10% 0px' });
             cards.forEach(function(card) { observer.observe(card); });
         } else {
             cards.forEach(function(card) { card.classList.add('card-visible'); });
